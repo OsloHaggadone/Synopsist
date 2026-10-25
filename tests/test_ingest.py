@@ -47,6 +47,16 @@ def test_first_sync(stream, tmp_path, capsys):
                        "file": "Album B/Café.mp3", "spotify_url": "", "apple_music_url": "", "amazon_music_url": ""}
 
 
+def test_private_songs_are_never_cataloged(tmp_path, capsys):
+    root = tmp_path / "stream"
+    for name in ["Album/a.mp3", "private/b.mp3", "private/cover.jpg", "private/Album/c.mp3", "Private/d.mp3"]:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_bytes(b"")
+    rows = sync_catalog(root, tmp_path / "catalog.csv")
+    assert [row["file"] for row in rows] == ["Album/a.mp3"]  # the private folder is the artist's own copy's
+    assert "private" not in capsys.readouterr().out.lower()
+
+
 def test_sync_is_idempotent(stream, tmp_path):
     catalog = tmp_path / "catalog.csv"
     sync_catalog(stream, catalog)

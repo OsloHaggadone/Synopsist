@@ -16,6 +16,10 @@ __pycache__/
 /data/*
 !/data/catalog.csv
 
+# The artist's private songs: for their own copy of the site only (~/OsloHaggadone-Private, outside
+# this repository); the build skips them too (ingest.PRIVATE_FOLDER)
+/data/stream/private/
+
 # Essentia model files
 /models/
 

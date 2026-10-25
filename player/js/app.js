@@ -617,7 +617,11 @@ function showTrack() {
     nowCover.dataset.album = album?.id ?? "";
     nowCover.replaceChildren(...(album ? [coverArt(album)] : []));
   }
-  for (const id of ["#now-cover", "#copy-link", "#seek", "#fullscreen", "#details-toggle"]) $(id).disabled = !track;
+  for (const id of ["#now-cover", "#now-favorite", "#copy-link", "#seek", "#fullscreen", "#details-toggle"]) $(id).disabled = !track;
+  const heart = $("#now-favorite");
+  heart.dataset.heart = track?.id ?? "";
+  heart.setAttribute("aria-label", track ? `Favorite ${track.title}` : "Favorite");
+  showHeart(heart, track?.id);
   // the song in focus on the music page catches up when the full-screen view closes
   if (!visualOpen()) setFocus(defaultFocus());
   if (visualOpen()) showVisual(false);
@@ -814,6 +818,8 @@ function playMoment(track, seconds) {
 
 let idleTimer;
 let coverTimer;
+let closing = null; // the full-screen view fading out (a timer)
+let pointer = "mouse"; // what last pointed: "mouse", "pen", or "touch" (a finger leaves :hover where it tapped)
 let frames = null; // counts how smoothly the view runs, for Settings > Graphics' advice (js/device.js)
 const visualOpen = () => $("#visual").classList.contains("open");
 
@@ -935,8 +941,9 @@ function preloadNext() {
   });
 }
 
-// While the music plays and nothing moves, the pointer, the exit button, and the player bar get out
-// of the way, like a video player's controls; moving the pointer, a tap, or a key brings them back.
+// While the music plays and nothing moves, the pointer and the player bar get out of the way, like a
+// video player's controls; moving the pointer, a tap, or a key brings them back. A mouse resting on
+// the bar keeps it there; a finger doesn't (a touch screen leaves :hover on whatever it last tapped).
 function wake() {
   $("#visual").classList.remove("idle");
   document.body.classList.remove("controls-hidden");
@@ -946,13 +953,20 @@ function wake() {
 
 function rest() {
   const bar = $("#player-bar");
-  const usingBar = bar.matches(":hover") || (document.documentElement.dataset.input === "keyboard" && bar.contains(document.activeElement));
+  const usingBar = (pointer !== "touch" && bar.matches(":hover")) || (document.documentElement.dataset.input === "keyboard" && bar.contains(document.activeElement));
   if (usingBar || panel) {
     idleTimer = setTimeout(rest, IDLE_MS);
     return;
   }
   $("#visual").classList.add("idle");
   document.body.classList.add("controls-hidden");
+}
+
+// The bar's height (it wraps on phones, and in full screen there it holds the whole player) keeps
+// the pages, queue, messages, and the full-screen cover clear of it. It's kept while the view fades
+// out, or the cover would jump as the bar goes back to its small self.
+function measureBar() {
+  if (!closing) document.documentElement.style.setProperty("--bar-h", `${$("#player-bar").offsetHeight}px`);
 }
 
 function setVisualOpen(open) {
@@ -965,6 +979,11 @@ function setVisualOpen(open) {
   $("#fullscreen").setAttribute("aria-label", open ? "Exit full screen" : "Full screen");
   setIcon($("#fullscreen"), open ? "collapse" : "expand");
   clearTimeout(coverTimer);
+  clearTimeout(closing);
+  closing = open ? null : setTimeout(() => {
+    closing = null;
+    measureBar();
+  }, 450); // style.css: .visual's fade
   frames?.check();
   if (open) {
     showVisual(true);
@@ -1058,12 +1077,35 @@ function wireControls() {
 
   $("#fullscreen").addEventListener("click", () => setVisualOpen(!visualOpen()));
   $("#now-cover").addEventListener("click", () => setVisualOpen(true));
-  $("#visual-exit").addEventListener("click", () => setVisualOpen(false));
-  $("#visual").addEventListener("dblclick", () => setVisualOpen(false));
-  for (const name of ["pointermove", "pointerdown"]) document.addEventListener(name, () => visualOpen() && wake());
+  // a double click closes the full-screen view, like a video's; a double tap doesn't (two quick taps
+  // to bring the controls back and press one would close it)
+  $("#visual").addEventListener("dblclick", () => pointer !== "touch" && setVisualOpen(false));
+  for (const name of ["pointermove", "pointerdown"]) {
+    document.addEventListener(name, (event) => {
+      pointer = event.pointerType;
+      if (visualOpen()) wake();
+    });
+  }
+  // on a touch screen, a swipe down the full-screen view closes it, as in a phone's music app
+  let swipe = null;
+  $("#visual").addEventListener("pointerdown", (event) => {
+    swipe = event.pointerType === "touch" ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
+  });
+  $("#visual").addEventListener("pointerup", (event) => {
+    if (swipe?.id !== event.pointerId) return;
+    const down = event.clientY - swipe.y;
+    const across = Math.abs(event.clientX - swipe.x);
+    swipe = null;
+    if (down > 80 && down > 2 * across) setVisualOpen(false);
+  });
+  $("#visual").addEventListener("pointercancel", () => {
+    swipe = null;
+  });
   document.addEventListener("fullscreenchange", () => {
     if (!document.fullscreenElement) setVisualOpen(false); // Esc, or the browser's own exit
   });
+  // iPhones zoom in on a pinch whatever the viewport says (index.html); like an app, the site doesn't
+  for (const name of ["gesturestart", "gesturechange"]) document.addEventListener(name, (event) => event.preventDefault());
 
   $("#focus-play").addEventListener("click", () => {
     const track = tracks.get(focusId);
@@ -1073,6 +1115,7 @@ function wireControls() {
   $("#focus-add").addEventListener("click", () => queueSong(tracks.get(focusId), "end"));
   $("#focus-details").addEventListener("click", () => openDetails(focusId));
   $("#focus-favorite").addEventListener("click", () => toggleFavorite(focusId));
+  $("#now-favorite").addEventListener("click", () => toggleFavorite(player.current.id));
 
   $("#copy-link").addEventListener("click", async () => {
     const track = player.current;
@@ -1213,9 +1256,7 @@ async function main() {
   showTime();
   showModes();
   showVolume();
-  // the bar's height (it wraps on phones) keeps the pages, queue, and messages clear of it
-  new ResizeObserver(() => document.documentElement.style.setProperty("--bar-h", `${$("#player-bar").offsetHeight}px`))
-    .observe($("#player-bar"));
+  new ResizeObserver(measureBar).observe($("#player-bar"));
   showView(true); // again, now that a link to a song can load it
   if (document.body.dataset.view === "player") animateList();
 }

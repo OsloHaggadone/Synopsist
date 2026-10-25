@@ -313,7 +313,9 @@ export class Player extends EventTarget {
     });
   }
 
-  // Lock screen, notification, and media-key controls.
+  // Lock screen, notification, and media-key controls: play, pause, the next and previous song, and
+  // dragging the progress bar. No 10-second skips: iPhones show those in place of next and previous
+  // (the user wanted to change songs from the lock screen).
   _mediaSessionHandlers() {
     if (!("mediaSession" in navigator)) return;
     const handlers = {
@@ -322,8 +324,6 @@ export class Player extends EventTarget {
       previoustrack: () => this.previous(),
       nexttrack: () => this.next(),
       seekto: (details) => this.seek(details.seekTime),
-      seekbackward: (details) => this.seekBy(-(details.seekOffset || 10)),
-      seekforward: (details) => this.seekBy(details.seekOffset || 10),
     };
     for (const [action, handler] of Object.entries(handlers)) {
       try {

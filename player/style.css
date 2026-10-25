@@ -162,7 +162,10 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(84px + env(safe-area-inset-top)); }
+/* no zooming, by a double tap or a pinch: the site works like an app (iPhones pinch-zoom anyway,
+   so app.js stops that there) */
+html { touch-action: pan-x pan-y; }
 
 body {
   margin: 0;
@@ -174,6 +177,20 @@ body {
 }
 body[data-view="player"], body[data-view="settings"].has-track { padding-bottom: calc(var(--bar-h) + 24px); }
 body.visual-open { overflow: hidden; }
+/* As a Home Screen app the page runs on under the phone's clock and battery (index.html's
+   black-translucent status bar), which are always white: on the light side a soft shade behind them
+   keeps them readable. */
+@media (display-mode: standalone) {
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 70;
+    height: env(safe-area-inset-top);
+    pointer-events: none;
+    background: linear-gradient(light-dark(rgb(8 24 42 / 0.45), transparent), transparent);
+  }
+}
 
 /* the pages: the title screen, the music, and the settings (which share the music page's top bar) */
 body[data-view="home"] .player-page { display: none; }
@@ -421,8 +438,12 @@ button:not(:disabled) { cursor: pointer; }
   opacity: 0;
   transition: transform 0.3s var(--ease-out), opacity 0.2s;
 }
-.icon-button:hover:not(:disabled) { color: var(--text); }
-.icon-button:hover:not(:disabled)::before { transform: skewX(var(--skew)) scale(1); opacity: 1; }
+/* (only where something can point without pressing: a finger leaves a button "pointed at" after
+   tapping it, and it would stay lit) */
+@media (hover: hover) {
+  .icon-button:hover:not(:disabled) { color: var(--text); }
+  .icon-button:hover:not(:disabled)::before { transform: skewX(var(--skew)) scale(1); opacity: 1; }
+}
 .icon-button:active:not(:disabled) svg { transform: scale(0.88); }
 .icon-button svg { transition: transform 0.2s var(--ease-out); }
 .icon-button:disabled { opacity: 0.35; }
@@ -505,7 +526,7 @@ button:not(:disabled) { cursor: pointer; }
 
 .landing { position: relative; isolation: isolate; padding: 0 1.25rem; overflow: hidden; }
 body.has-track .landing { padding-bottom: var(--bar-h); }
-.landing-settings { position: absolute; top: 1rem; right: 1rem; }
+.landing-settings { position: absolute; top: calc(1rem + env(safe-area-inset-top)); right: 1rem; }
 /* the title screen fills the screen, its middle above the player bar when there is one */
 .landing-hero { display: grid; place-items: center; min-height: 100vh; min-height: 100svh; padding: 4rem 0 2.5rem; }
 body.has-track .landing-hero { padding-bottom: calc(var(--bar-h) + 1.5rem); }
@@ -571,8 +592,8 @@ body.has-track .landing-hero { padding-bottom: calc(var(--bar-h) + 1.5rem); }
   display: flex;
   align-items: center;
   gap: clamp(0.75rem, 3vw, 2.25rem);
-  height: 64px;
-  padding: 0 clamp(0.75rem, 3vw, 2rem);
+  height: calc(64px + env(safe-area-inset-top)); /* (as a Home Screen app, under the phone's clock too) */
+  padding: env(safe-area-inset-top) clamp(0.75rem, 3vw, 2rem) 0;
   background: var(--header-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -653,7 +674,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 /* --- music page: the selected song and the list ----------------------------------------------- */
 
 .select { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: clamp(1.5rem, 3.5vw, 3.25rem); align-items: start; }
-.focus { position: sticky; top: 88px; }
+.focus { position: sticky; top: calc(88px + env(safe-area-inset-top)); }
 /* the cover, whole */
 .jacket { aspect-ratio: 1; margin-bottom: 1.15rem; overflow: hidden; border-radius: var(--radius); background: var(--surface-solid); box-shadow: 0 0 0 1px var(--line), 0 14px 36px var(--shadow); }
 .jacket > * { width: 100%; height: 100%; }
@@ -919,7 +940,9 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
   background: var(--surface-2);
   transition: transform 0.3s var(--ease-out);
 }
-.now-cover:not(:disabled):hover { transform: scale(1.06); }
+@media (hover: hover) {
+  .now-cover:not(:disabled):hover { transform: scale(1.06); }
+}
 .now-text { min-width: 0; }
 .now-title, .now-album { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .now-title { font-weight: 700; }
@@ -959,7 +982,9 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
   box-shadow: inset 0 1px 0 var(--edge), inset -1px 0 0 var(--edge);
   transition: transform 0.45s var(--ease-out), border-color 0.2s, background-color 0.2s;
 }
-.play-button:hover::before { transform: rotate(45deg) scale(1.08); border-color: var(--accent); background-color: var(--glass-hover); }
+@media (hover: hover) {
+  .play-button:hover::before { transform: rotate(45deg) scale(1.08); border-color: var(--accent); background-color: var(--glass-hover); }
+}
 .play-button:active::before { transform: rotate(135deg) scale(0.94); }
 .play-button svg { width: 20px; height: 20px; }
 .play-button svg.pop { animation: pop 0.35s var(--ease-out); }
@@ -993,7 +1018,9 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
 .wave-played path { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: url(#wave-fill); }
 .wave-from { stop-color: var(--accent-3); }
 .wave-to { stop-color: var(--accent); }
-.seek:hover .wave { filter: brightness(1.3) saturate(1.2); }
+@media (hover: hover) {
+  .seek:hover .wave { filter: brightness(1.3) saturate(1.2); }
+}
 /* the time under the pointer */
 .seek-tip {
   position: absolute;
@@ -1023,7 +1050,10 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
   appearance: none;
   -webkit-appearance: none;
 }
-.slider:hover, .slider:focus-visible, .slider:active { --done: var(--accent); }
+.slider:focus-visible, .slider:active { --done: var(--accent); }
+@media (hover: hover) {
+  .slider:hover { --done: var(--accent); }
+}
 .slider:disabled { cursor: default; opacity: 0.5; }
 .slider::-webkit-slider-runnable-track {
   height: 3px;
@@ -1084,9 +1114,10 @@ body:not(.has-track) .live-eq { display: none; }
   isolation: isolate;
   display: grid;
   place-items: center;
-  padding: 7vh 4vw calc(var(--bar-h) + 7vh);
+  padding: calc(7vh + env(safe-area-inset-top)) 4vw calc(var(--bar-h) + 7vh);
   background: #06040c;
   color-scheme: dark;
+  touch-action: none; /* a swipe down closes it on a touch screen (app.js); nothing here scrolls */
   /* the album's colors (app.js sets them on the backdrops and the frame) */
   --c-1: #7b67ff;
   --c-2: #1c1a4d;
@@ -1146,7 +1177,13 @@ body.controls-hidden .scene { translate: none; }
   background: radial-gradient(ellipse at center, transparent 50%, rgb(2 1 6 / 0.8) 100%);
   opacity: var(--vignette, 0.7);
 }
-.visual-frame { position: relative; width: min(86vw, calc(100vh - var(--bar-h) - 16vh)); width: min(86vw, calc(100svh - var(--bar-h) - 16vh)); aspect-ratio: 1; transition: translate 0.5s var(--ease-out); }
+.visual-frame {
+  position: relative;
+  width: min(86vw, calc(100vh - var(--bar-h) - 16vh - env(safe-area-inset-top)));
+  width: min(86vw, calc(100svh - var(--bar-h) - 16vh - env(safe-area-inset-top)));
+  aspect-ratio: 1;
+  transition: translate 0.5s var(--ease-out);
+}
 /* when the player bar slides away, the cover glides down to the middle of the screen */
 body.controls-hidden .visual-frame { translate: 0 calc(var(--bar-h) / 2); }
 /* thin corner brackets around the cover */
@@ -1219,9 +1256,6 @@ body.controls-hidden .visual-frame { translate: 0 calc(var(--bar-h) / 2); }
   transform: translate(-50%, -50%) rotate(45deg) scale(0.8);
 }
 .visual-cover .cover-art span { font-size: clamp(1.6rem, 5vmin, 3.4rem); }
-.visual-exit { position: absolute; top: 1.25rem; right: 1.25rem; z-index: 1; color: rgba(255, 255, 255, 0.85); }
-.visual-exit::before { opacity: 1; transform: skewX(var(--skew)) scale(1); background: rgba(255, 255, 255, 0.1); }
-.visual.idle .visual-exit { opacity: 0; }
 /* in full screen the bar is dark glass over the backdrop, whatever the theme, and it slides away
    while the music plays and nothing moves, like a video player's controls (app.js: wake, rest) */
 body.visual-open .player-bar { color-scheme: dark; background: rgba(6, 4, 12, 0.5); border-top-color: rgba(255, 255, 255, 0.06); transition: transform 0.5s var(--ease-out), opacity 0.4s; }
@@ -1245,6 +1279,7 @@ body.visual-covered .scenery { visibility: hidden; }
   display: flex;
   flex-direction: column;
   width: min(430px, 100%);
+  padding-top: env(safe-area-inset-top);
   background: var(--bar-bg);
   color: var(--text);
   backdrop-filter: blur(22px);
@@ -1525,6 +1560,9 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   }
   .now { grid-area: now; }
   .now-cover { width: 46px; height: 46px; }
+  .now-title { font-size: 0.95rem; }
+  .now-album { font-size: 0.8rem; }
+  body:not(.visual-open) #now-favorite { display: none; } /* no room: each song's heart shows beside it here */
   .extras { grid-area: extras; }
   .transport { grid-area: transport; }
   .volume { display: none; }
@@ -1535,8 +1573,63 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   .group-head { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 0.85rem; padding: 0 0.15rem 0.7rem 0.6rem; }
   .group-cover { width: 44px; }
   .shortcut-list { grid-template-columns: minmax(0, 1fr); }
-  .visual { padding: 4vh 6vw calc(var(--bar-h) + 4vh); }
-  .visual-frame { width: min(80vw, calc(100svh - var(--bar-h) - 14vh)); }
+}
+
+/* --- full screen on phones ---------------------------------------------------------------------- */
+
+/* Laid out like a phone's music app (the user asked for Apple Music's layout, in the site's own
+   look): the cover big at the top; under it the song with its heart, the seek bar across the whole
+   width with the times under its ends, then previous, play, and next, bigger, and the rest in one
+   quiet row along the bottom. No glass: the controls sit on the backdrop, a little darker toward the
+   bottom so they stay readable (and nothing has to blur the moving backdrop on every frame). */
+@media (max-width: 720px) {
+  .visual { padding: calc(1rem + env(safe-area-inset-top)) 2rem calc(var(--bar-h) + 0.5rem); }
+  .visual-frame {
+    width: min(100vw - 4rem, 100vh - var(--bar-h) - 2.5rem - env(safe-area-inset-top));
+    width: min(100vw - 4rem, 100svh - var(--bar-h) - 2.5rem - env(safe-area-inset-top));
+  }
+  .visual-frame::before { inset: -14px; }
+
+  body.visual-open .player-bar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-areas: "now now now now now" "progress progress progress progress progress" "prev prev play next next";
+    gap: 0.5rem 0;
+    padding: 1rem 1.5rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, rgb(4 3 10 / 0.5) 55%);
+    border-top: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* the buttons' groups step aside, so each button takes its own place in the bar's grid */
+  body.visual-open :is(.transport, .controls, .extras) { display: contents; }
+  body.visual-open :is(.now-cover, #copy-link) { display: none; }
+  body.visual-open .now { gap: 0.5rem; }
+  body.visual-open .now-text { flex: 1; }
+  body.visual-open .now-title { font-size: 1.05rem; }
+  body.visual-open .now-album { font-size: 0.85rem; }
+  body.visual-open #now-favorite { width: 44px; height: 44px; margin-right: -11px; } /* the heart's edge on the seek bar's end */
+  body.visual-open #now-favorite svg { width: 22px; height: 22px; }
+  body.visual-open .progress { grid-area: progress; grid-template-columns: 1fr 1fr; grid-template-areas: "seek seek" "current total"; gap: 0; max-width: none; }
+  body.visual-open .progress .seek { grid-area: seek; }
+  body.visual-open .progress .time { top: 0; min-width: 0; font-size: 0.7rem; }
+  body.visual-open #time-current { grid-area: current; text-align: left; }
+  body.visual-open #time-total { grid-area: total; text-align: right; }
+  body.visual-open #prev { grid-area: prev; }
+  body.visual-open #play { grid-area: play; }
+  body.visual-open #next { grid-area: next; }
+  body.visual-open :is(#prev, #play, #next) { justify-self: center; }
+  body.visual-open :is(#prev, #next) { width: 60px; height: 60px; color: var(--text); }
+  body.visual-open :is(#prev, #next) svg { width: 30px; height: 30px; }
+  body.visual-open #play { width: 84px; height: 84px; margin: 0; }
+  body.visual-open #play::before { inset: 13px; }
+  body.visual-open #play svg { width: 30px; height: 30px; }
+  /* the quiet row: shuffle, repeat, the song's details, the queue, and back to the page */
+  body.visual-open :is(#shuffle, #repeat, #details-toggle, #queue-toggle, #fullscreen) { grid-row: 4; justify-self: center; }
+  body.visual-open #shuffle { grid-column: 1; }
+  body.visual-open #repeat { grid-column: 2; }
+  body.visual-open #details-toggle { grid-column: 3; }
+  body.visual-open #queue-toggle { grid-column: 4; }
+  body.visual-open #fullscreen { grid-column: 5; }
 }
 
 @media (max-width: 520px) {

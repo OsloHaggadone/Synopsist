@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Oslo Haggadone</title>
   <meta name="description" content="Stream every song by Oslo Haggadone for free.">
   <meta name="theme-color" content="#050b15">
+  <!-- added to an iPhone's Home Screen, the app fills the screen, under the clock (style.css keeps clear of it) -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Oslo Haggadone">
   <meta property="og:description" content="Stream every song by Oslo Haggadone for free.">
@@ -352,7 +354,6 @@
     </div>
     <canvas class="effects effects-front" id="visual-front" aria-hidden="true"></canvas>
     <span class="visual-vignette" aria-hidden="true"></span>
-    <button class="icon-button visual-exit" id="visual-exit" aria-label="Exit full screen" title="Exit full screen (F)"><svg><use href="#i-collapse"/></svg></button>
   </div>
 
   <!-- panels that slide in from the side: the queue, and the details of a song -->
@@ -391,6 +392,7 @@
         <p class="now-title" id="now-title">Pick a song to start</p>
         <p class="now-album" id="now-album"></p>
       </div>
+      <button class="icon-button small heart" id="now-favorite" aria-label="Favorite" aria-pressed="false" title="Add to favorites" disabled><svg><use href="#i-heart"/></svg></button>
       <button class="icon-button small" id="copy-link" aria-label="Copy a link to this song" title="Copy link" disabled><svg><use href="#i-link"/></svg></button>
     </div>
     <div class="transport">

@@ -54,6 +54,9 @@
     <symbol id="i-details" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14v4M8 9v9M12 5v13M16 11v7M20 8v10"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+    <!-- the heart and the star have no fill of their own: style.css fills them once they're on -->
+    <symbol id="i-heart" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5 4.4 13a4.9 4.9 0 0 1 6.9-6.9l.7.7.7-.7a4.9 4.9 0 0 1 6.9 6.9z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
   </svg>
 
   <!-- behind every page, the night of the Hollow Journey cover (style.css): moonlight that follows the
@@ -133,6 +136,7 @@
                 <li role="option" data-value="popular"><span class="option-name">Most popular</span><span class="option-about">Most played first</span></li>
                 <li role="option" data-value="newest"><span class="option-name">Release date</span><span class="option-about">Newest first</span></li>
                 <li role="option" data-value="title"><span class="option-name">A–Z</span><span class="option-about">By title</span></li>
+                <li role="option" data-value="favorites"><span class="option-name">Favorites</span><span class="option-about">Only the songs you’ve hearted</span></li>
               </ul>
             </div>
             <button class="btn btn-primary" id="play-all"><svg><use href="#i-play"/></svg><span>Play all</span></button>
@@ -148,10 +152,13 @@
             <h2 class="focus-title" id="focus-title"></h2>
             <p class="focus-album" id="focus-album"></p>
             <p class="focus-meta" id="focus-meta"></p>
+            <!-- its stars, while the ratings are on (Settings) -->
+            <div class="focus-rating" id="focus-rating" hidden></div>
             <div class="focus-actions">
               <button class="btn btn-primary" id="focus-play"><svg><use href="#i-play"/></svg><span>Play</span></button>
               <button class="icon-button" id="focus-next" aria-label="Play next" title="Play next"><svg><use href="#i-play-next"/></svg></button>
               <button class="icon-button" id="focus-add" aria-label="Add to queue" title="Add to queue"><svg><use href="#i-add"/></svg></button>
+              <button class="icon-button heart" id="focus-favorite" aria-pressed="false" aria-label="Favorite" title="Add to favorites"><svg><use href="#i-heart"/></svg></button>
               <button class="icon-button" id="focus-details" aria-label="Song details" title="Song details"><svg><use href="#i-details"/></svg></button>
             </div>
           </aside>
@@ -160,6 +167,7 @@
             <p class="status" id="library-status">Loading the music…</p>
             <div id="albums"></div>
             <p class="status" id="no-results" hidden>No songs match your search.</p>
+            <p class="status" id="no-favorites" hidden>No favorites yet. Press the heart beside a song to add it here; your favorites are kept in this browser.</p>
           </div>
         </div>
       </section>
@@ -277,6 +285,20 @@
           </div>
         </div>
         <p class="settings-note" id="ios-sound-note" hidden>On iPhone and iPad, the music may stop when the screen locks while the EQ or the live EQ is on.</p>
+      </section>
+
+      <section class="settings-group" aria-labelledby="songs-title">
+        <h2 id="songs-title">Your songs</h2>
+        <div class="setting">
+          <h3 id="ratings-title">Star ratings</h3>
+          <div>
+            <label class="toggle">
+              <input type="checkbox" id="ratings-setting" aria-labelledby="ratings-title ratings-text">
+              <span id="ratings-text">Rate songs out of five stars</span>
+            </label>
+            <p class="settings-note">Your favorites and ratings are kept in this browser only. Turning the stars off hides them; your ratings stay.</p>
+          </div>
+        </div>
       </section>
 
       <section class="settings-group" aria-labelledby="sharing-title">

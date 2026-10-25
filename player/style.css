@@ -690,6 +690,14 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 .group-actions { display: flex; }
 .group-actions .icon-button { color: var(--faint); }
 .group-actions .icon-button svg { width: 16px; height: 16px; }
+/* an album folded to its heading (its chevron, or its cover or title; the user asked for it, to
+   scroll past albums): a search still shows its matches */
+.group-cover, .group-text { cursor: pointer; }
+.fold svg { transition: rotate 0.2s var(--ease-out), transform 0.2s var(--ease-out); }
+.group.collapsed { margin-bottom: 1.25rem; }
+.group.collapsed .fold svg { rotate: -90deg; }
+.group.collapsed .tracklist { display: none; }
+#albums.searching .group.collapsed .tracklist { display: grid; }
 
 /* the songs: plain rows; a slanted plate shows behind one on hover, and the one playing is lit */
 .tracklist { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
@@ -697,7 +705,9 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr); /* the song; then a column for each part after it */
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
   align-items: center;
   gap: 0.3rem;
   min-height: 50px;
@@ -737,6 +747,31 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 /* a song's streams (site.js), when known: a quiet number before its length, like a plays column */
 .track-streams { color: var(--faint); font: 500 0.82rem var(--display); font-variant-numeric: tabular-nums; text-align: right; }
 .track-streams:not(:empty) { min-width: 4.6rem; }
+
+/* favorites: a heart beside each song (it shows while pointing at the row) and the one in focus,
+   filled in the accent once the song is one */
+.heart svg { fill: none; }
+.heart[aria-pressed="true"] { color: var(--accent); }
+.heart[aria-pressed="true"] svg { fill: currentColor; }
+.track .heart { opacity: 0; }
+.track:hover .heart, .track:focus-within .heart, .track .heart[aria-pressed="true"] { opacity: 1; }
+
+/* star ratings (Settings > Your songs, off at first), like iTunes: a song's own stars, and while
+   pointing at its row all five to choose from; pointing at one lights it and the ones before it */
+.rating { display: inline-flex; align-items: center; }
+.star { display: grid; place-items: center; width: 17px; height: 30px; padding: 0; border: 0; background: none; color: var(--faint); cursor: pointer; }
+.star svg { width: 13px; height: 13px; fill: none; }
+.star.on { color: var(--muted); }
+.star.on svg { fill: currentColor; }
+.rating:has(.star:hover) .star { color: var(--accent); }
+.rating:has(.star:hover) .star svg { fill: currentColor; }
+.rating .star:hover ~ .star { color: var(--faint); }
+.rating .star:hover ~ .star svg { fill: none; }
+.track .star:not(.on) { opacity: 0; }
+.track:hover .star, .track:focus-within .star { opacity: 1; }
+.focus-rating { margin: -0.75rem 0 0.8rem -0.2rem; }
+.focus-rating .star { width: 23px; height: 30px; }
+.focus-rating .star svg { width: 17px; height: 17px; }
 .track.highlight::before { animation: highlight 2.6s ease-out; }
 @keyframes highlight { from { background-color: color-mix(in srgb, var(--accent) 40%, transparent); } }
 
@@ -1494,8 +1529,8 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   .transport { grid-area: transport; }
   .volume { display: none; }
   .side-panel { width: 100%; border-left: 0; }
-  .track { grid-template-columns: minmax(0, 1fr) auto auto; min-height: 48px; padding-right: 0.5rem; }
-  .track-streams { display: none; } /* no room beside the titles: the song in focus shows them */
+  .track { min-height: 48px; padding-right: 0.5rem; }
+  .track-streams, .track .rating { display: none; } /* no room beside the titles: the song in focus shows them */
   .track-main { gap: 0.7rem; padding: 0.7rem 0.3rem; }
   .group-head { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 0.85rem; padding: 0 0.15rem 0.7rem 0.6rem; }
   .group-cover { width: 44px; }
@@ -1514,7 +1549,7 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 }
 
 @media (hover: none) {
-  .track-actions { opacity: 1; }
+  .track-actions, .track .heart, .track .star { opacity: 1; }
   .slider::-webkit-slider-thumb { opacity: 1; transform: rotate(45deg) scale(1); }
   .slider::-moz-range-thumb { opacity: 1; }
 }

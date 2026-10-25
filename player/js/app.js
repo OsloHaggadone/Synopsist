@@ -17,11 +17,13 @@ import { songEffects } from "./effects.js";
 import { equalize } from "./eq.js";
 import { setSharing, sharingEnabled } from "./listening.js";
 import { liveEq } from "./liveeq.js";
+import { isFavorite, onMarksChange, rate, ratingOf, toggleFavorite } from "./marks.js";
 import { loadNotes } from "./notes.js";
 import { Player } from "./player.js";
 import {
-  eqSetting, graphics, graphicsSetting, liveEqSetting, motionReduced, onSettingsChange, paletteSetting, setEq, setGraphics,
-  setLiveEq, setPalette, setSort, setTheme, sortSetting, themeSetting,
+  eqSetting, graphics, graphicsSetting, isCollapsed, liveEqSetting, motionReduced, onSettingsChange, paletteSetting,
+  ratingsSetting, setCollapsed, setEq, setGraphics, setLiveEq, setPalette, setRatings, setSort, setTheme, sortSetting,
+  themeSetting,
 } from "./settings.js";
 import { followTheMusic } from "./vibe.js";
 import { wavePaths } from "./wave.js";
@@ -138,6 +140,7 @@ function showSettings() {
   choices.graphics.show(graphicsSetting());
   choices.eq.show(eqSetting());
   $("#live-eq-setting").checked = liveEqSetting();
+  $("#ratings-setting").checked = ratingsSetting();
   $("#motion-note").hidden = !motionReduced(); // the device asks for less motion: Off, whatever is chosen
   $("#live-eq-note").hidden = !liveEqSetting() || graphics() !== "off";
   showAdvice();
@@ -193,6 +196,7 @@ function wireSettings() {
   choices.graphics = dropdown($("#graphics-choice"), setGraphics);
   choices.eq = dropdown($("#eq-choice"), setEq);
   $("#live-eq-setting").addEventListener("change", (event) => setLiveEq(event.target.checked));
+  $("#ratings-setting").addEventListener("change", (event) => setRatings(event.target.checked));
   $("#graphics-advice-use").addEventListener("click", () => setGraphics(recommendation()));
   // iPhones and iPads (an iPad says it's a Mac, but one with a touch screen)
   $("#ios-sound-note").hidden = !/iP(hone|ad|od)/.test(navigator.userAgent) && !(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -259,6 +263,7 @@ function goTo(hash, scroll) {
   if (hash.startsWith("song-") && tracks?.has(hash.slice(5))) {
     const id = hash.slice(5);
     const album = albums.get(tracks.get(id).album);
+    fold(album.id, false); // a folded album opens to show it
     if (player.current?.id !== id) player.playList(album.tracks, { start: id, label: album.title, autoplay: false });
     restart(target, "highlight");
     target.scrollIntoView({ block: "center" });
@@ -326,16 +331,33 @@ function renderGroup(album) {
   const list = album.tracks.map((id) => tracks.get(id));
   const total = list.reduce((sum, track) => sum + track.duration, 0);
   const about = [releaseKind(album, list.length, total), album.year, plural(list.length, "song"), totalTime(total)];
-  return el("section", { class: "group", id: `album-${album.id}`, dataset: { album: album.id }, "aria-labelledby": `album-title-${album.id}` },
+  const folded = isCollapsed(album.id);
+  return el("section", { class: folded ? "group collapsed" : "group", id: `album-${album.id}`, dataset: { album: album.id }, "aria-labelledby": `album-title-${album.id}` },
     el("div", { class: "group-head" },
-      el("div", { class: "group-cover", "aria-hidden": "true" }, coverArt(album)),
-      el("div", { class: "group-text" },
+      el("div", { class: "group-cover", "aria-hidden": "true", onclick: () => fold(album.id) }, coverArt(album)),
+      el("div", { class: "group-text", onclick: () => fold(album.id) },
         el("h3", { class: "group-title", id: `album-title-${album.id}` }, album.title),
         el("p", { class: "group-meta" }, about.filter(Boolean).join(" · "))),
       el("div", { class: "group-actions" },
         el("button", { class: "icon-button small", onclick: () => playAlbum(album, false), "aria-label": `Play ${album.title}`, title: "Play" }, icon("play")),
-        el("button", { class: "icon-button small", onclick: () => playAlbum(album, true), "aria-label": `Shuffle ${album.title}`, title: "Shuffle" }, icon("shuffle")))),
-    el("ol", { class: "tracklist" }, ...list.map((track, i) => renderTrack(track, i + 1, albumList(album)))));
+        el("button", { class: "icon-button small", onclick: () => playAlbum(album, true), "aria-label": `Shuffle ${album.title}`, title: "Shuffle" }, icon("shuffle")),
+        el("button", {
+          class: "icon-button small fold", onclick: () => fold(album.id), "aria-expanded": String(!folded),
+          "aria-controls": `songs-${album.id}`, "aria-label": `${album.title}’s songs`, title: folded ? "Show the songs" : "Fold the album",
+        }, icon("chevron")))),
+    el("ol", { class: "tracklist", id: `songs-${album.id}` }, ...list.map((track, i) => renderTrack(track, i + 1, albumList(album)))));
+}
+
+// An album folded to its heading, or opened again (its chevron, or its cover or title), remembered
+// for the next visit; the user asked for it, to scroll past albums.
+function fold(albumId, folded = !isCollapsed(albumId)) {
+  setCollapsed(albumId, folded);
+  const group = document.getElementById(`album-${albumId}`);
+  if (!group) return; // (the list is sorted, not by album)
+  group.classList.toggle("collapsed", folded);
+  const button = group.querySelector(".fold");
+  button.setAttribute("aria-expanded", String(!folded));
+  button.title = folded ? "Show the songs" : "Fold the album";
 }
 
 // A song's row, numbered; clicking it plays `list` ({ids, label}) from it. In one list of all the
@@ -356,6 +378,8 @@ function renderTrack(track, number, list, withAlbum = false) {
     el("span", { class: "track-actions" },
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "next"), "aria-label": `Play ${track.title} next`, title: "Play next" }, icon("play-next")),
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "end"), "aria-label": `Add ${track.title} to the queue`, title: "Add to queue" }, icon("add"))),
+    heartButton(track),
+    ratingsSetting() ? ratingStars(track) : null,
     streamsCell(track.id),
     el("span", { class: "track-time" }, clock(track.duration)));
 }
@@ -374,7 +398,7 @@ const albumList = (album) => ({ ids: album.tracks, label: album.title });
 // Every song in the order chosen with the dropdown beside the search: by album, the way the page
 // has always listed them (releases newest first, each in its own order); by popularity (site.js's
 // ranking first, the rest after, in that order); by release date, newest first; or by title.
-const SORT_LABELS = { albums: "all songs", popular: "Most popular", newest: "the newest songs", title: "all songs, A–Z" };
+const SORT_LABELS = { albums: "all songs", popular: "Most popular", newest: "the newest songs", title: "all songs, A–Z", favorites: "your favorites" };
 const byTitle = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 function sortedSongs(order) {
@@ -387,6 +411,7 @@ function sortedSongs(order) {
     return [...allIds].sort((a, b) => released(b).localeCompare(released(a))); // (a release keeps its order)
   }
   if (order === "title") return [...allIds].sort((a, b) => byTitle.compare(tracks.get(a).title, tracks.get(b).title));
+  if (order === "favorites") return allIds.filter(isFavorite); // just the hearted ones, in the albums' order
   return allIds;
 }
 
@@ -400,6 +425,7 @@ function renderSongs() {
     $("#albums").replaceChildren(el("section", { class: "group all-songs", "aria-label": "Songs" },
       el("ol", { class: "tracklist" }, ...list.ids.map((id, i) => renderTrack(tracks.get(id), i + 1, list, true)))));
   }
+  $("#no-favorites").hidden = order !== "favorites" || allIds.some(isFavorite);
   filterSongs();
   markCurrent();
 }
@@ -429,7 +455,8 @@ function filterSongs() {
     group.hidden = visible === 0;
     shown += visible;
   }
-  $("#no-results").hidden = shown > 0;
+  $("#albums").classList.toggle("searching", Boolean(q)); // a folded album shows its matches too
+  $("#no-results").hidden = shown > 0 || !$("#no-favorites").hidden;
 }
 
 // --- the song in focus: the one playing (pointing at others in the list leaves it be) ----------
@@ -457,6 +484,9 @@ function setFocus(id) {
     $("#focus-meta").textContent = [clock(track.duration), track.bpm && `${track.bpm} BPM`, track.key, streams !== null && streamCount(streams)]
       .filter(Boolean).join(" · ");
     $("#focus-meta").title = streams !== null && asOf() ? `${streamCount(streams)}, ${asOf()}` : "";
+    $("#focus-favorite").dataset.heart = id;
+    showHeart($("#focus-favorite"), id);
+    showFocusRating();
     for (const node of [$("#focus-title"), $("#focus-album"), $("#focus-meta")]) restart(node, "focus-text-swap");
   }
   showFocusState();
@@ -477,6 +507,61 @@ function showFocusState() {
   $("#focus-play span").textContent = playing ? "Pause" : "Play";
 }
 
+// --- favorites and star ratings, kept in this browser (js/marks.js) ---------------------------
+
+// A song's heart: pressed (filled) once the song is a favorite.
+function heartButton(track) {
+  const button = el("button", {
+    class: "icon-button small heart", dataset: { heart: track.id }, "aria-label": `Favorite ${track.title}`,
+    onclick: () => toggleFavorite(track.id),
+  }, icon("heart"));
+  showHeart(button, track.id);
+  return button;
+}
+
+function showHeart(button, id) {
+  const on = isFavorite(id);
+  button.setAttribute("aria-pressed", String(on));
+  button.title = on ? "Remove from favorites" : "Add to favorites";
+}
+
+// A song's five stars, like iTunes: pressing one gives it that many, pressing its own rating again
+// takes it away. Only while the ratings are on (settings).
+function ratingStars(track) {
+  const group = el("span", { class: "rating", role: "group", dataset: { rating: track.id }, "aria-label": `Rating of ${track.title}` },
+    ...[1, 2, 3, 4, 5].map((n) => el("button", { class: "star", "aria-label": plural(n, "star"), onclick: () => rate(track.id, n) }, icon("star"))));
+  showRating(group, track.id);
+  return group;
+}
+
+function showRating(group, id) {
+  const stars = ratingOf(id);
+  group.querySelectorAll(".star").forEach((star, i) => {
+    star.classList.toggle("on", i < stars);
+    star.setAttribute("aria-pressed", String(i + 1 === stars));
+    star.title = i + 1 === stars ? "Remove the rating" : `Rate ${plural(i + 1, "star")}`;
+  });
+}
+
+// The song in focus's stars, under its length and key.
+function showFocusRating() {
+  const track = tracks?.get(focusId);
+  const box = $("#focus-rating");
+  box.hidden = !ratingsSetting() || !track;
+  box.replaceChildren(...(box.hidden ? [] : [ratingStars(track)]));
+}
+
+// A song marked: its hearts or stars everywhere they show (its row, the song in focus), and the
+// favorites list, which it has just joined or left.
+function showMarks(id, what) {
+  if (what === "favorite") {
+    for (const button of $$(".heart")) if (button.dataset.heart === id) showHeart(button, id);
+    if (sortSetting() === "favorites") renderSongs();
+  } else {
+    for (const group of $$(".rating")) if (group.dataset.rating === id) showRating(group, id);
+  }
+}
+
 // --- choosing what plays ---------------------------------------------------------------------
 
 function playAlbum(album, shuffle) {
@@ -488,7 +573,12 @@ function playAlbum(album, shuffle) {
 function playEverything(shuffle) {
   if (shuffle !== player.shuffle) player.setShuffle(shuffle);
   const order = sortSetting();
-  player.playList(sortedSongs(order), { label: SORT_LABELS[order] });
+  const ids = sortedSongs(order);
+  if (ids.length === 0) {
+    toast("No favorites yet: press the heart beside a song.");
+    return;
+  }
+  player.playList(ids, { label: SORT_LABELS[order] });
 }
 
 // A song, then the rest of its list ({ids, label}: its album, or the list in the chosen order).
@@ -902,7 +992,12 @@ function wireControls() {
   // the songs' order: the dropdown beside the search
   const sort = dropdown($("#sort-choice"), setSort);
   sort.show(sortSetting());
+  onMarksChange(showMarks);
   onSettingsChange((what) => {
+    if (what === "ratings") {
+      renderSongs();
+      showFocusRating();
+    }
     if (what !== "sort") return;
     sort.show(sortSetting());
     renderSongs();
@@ -977,6 +1072,7 @@ function wireControls() {
   $("#focus-next").addEventListener("click", () => queueSong(tracks.get(focusId), "next"));
   $("#focus-add").addEventListener("click", () => queueSong(tracks.get(focusId), "end"));
   $("#focus-details").addEventListener("click", () => openDetails(focusId));
+  $("#focus-favorite").addEventListener("click", () => toggleFavorite(focusId));
 
   $("#copy-link").addEventListener("click", async () => {
     const track = player.current;

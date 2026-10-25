@@ -5,8 +5,9 @@
 // song effects). index.html's first script applies them before the page is drawn, as data-palette,
 // data-theme, and data-graphics on <html>; this module changes them and tells the rest of the site.
 // A device that asks for less motion always gets Off. And the sound: an EQ preset (js/eq.js), and
-// whether the live EQ shows along the bottom of the screen (js/liveeq.js). And how the music page
-// orders the songs.
+// whether the live EQ shows along the bottom of the screen (js/liveeq.js). Whether songs can be
+// rated out of five stars (off unless turned on; the ratings themselves are in js/marks.js). And
+// how the music page orders the songs, and which albums it shows folded.
 
 const PALETTE_KEY = "synopsist.palette";
 const THEME_KEY = "synopsist.theme";
@@ -14,11 +15,13 @@ const GRAPHICS_KEY = "synopsist.graphics";
 const EQ_KEY = "synopsist.eq";
 const LIVE_EQ_KEY = "synopsist.liveEq";
 const SORT_KEY = "synopsist.sort";
+const RATINGS_KEY = "synopsist.showRatings";
+const COLLAPSED_KEY = "synopsist.collapsed";
 export const PALETTES = ["hollow-journey", "hollow-journey-beyond", "planetary-fields", "eternal-synopsis"];
 export const THEMES = ["auto", "light", "dark"];
 export const GRAPHICS = ["high", "low", "off"];
 export const EQS = ["flat", "bass-boost", "bass-reduce", "treble-boost", "vocal-boost", "electronic", "small-speakers"];
-export const SORTS = ["albums", "popular", "newest", "title"];
+export const SORTS = ["albums", "popular", "newest", "title", "favorites"];
 
 const root = document.documentElement;
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -48,6 +51,13 @@ function changed(what) {
 let eq = EQS.includes(recall(EQ_KEY)) ? recall(EQ_KEY) : EQS[0];
 let liveEq = recall(LIVE_EQ_KEY) === "1";
 let sort = SORTS.includes(recall(SORT_KEY)) ? recall(SORT_KEY) : SORTS[0];
+let showRatings = recall(RATINGS_KEY) === "1";
+let collapsed;
+try {
+  collapsed = new Set([].concat(JSON.parse(recall(COLLAPSED_KEY)) ?? []));
+} catch {
+  collapsed = new Set(); // something unreadable: every album open
+}
 
 // The listener's choices.
 export const paletteSetting = () => (PALETTES.includes(root.dataset.palette) ? root.dataset.palette : PALETTES[0]);
@@ -56,6 +66,8 @@ export const graphicsSetting = () => (GRAPHICS.includes(root.dataset.graphics) ?
 export const eqSetting = () => eq;
 export const liveEqSetting = () => liveEq;
 export const sortSetting = () => sort;
+export const ratingsSetting = () => showRatings;
+export const isCollapsed = (album) => collapsed.has(album);
 
 // What the site does: the choice, unless the device asks for less motion.
 export const graphics = () => (reduceMotion.matches ? "off" : graphicsSetting());
@@ -100,8 +112,22 @@ export function setSort(order) {
   changed("sort");
 }
 
-// fn("palette" | "theme" | "graphics" | "eq" | "liveEq" | "sort"), whenever one changes (graphics
-// too when the device's motion setting does)
+export function setRatings(on) {
+  showRatings = on;
+  remember(RATINGS_KEY, on ? "1" : null);
+  changed("ratings");
+}
+
+// An album folded to its heading in the music page's list, or opened again (the page does the
+// showing itself, so nothing is told).
+export function setCollapsed(album, folded) {
+  if (folded) collapsed.add(album);
+  else collapsed.delete(album);
+  remember(COLLAPSED_KEY, collapsed.size ? JSON.stringify([...collapsed]) : null);
+}
+
+// fn("palette" | "theme" | "graphics" | "eq" | "liveEq" | "ratings" | "sort"), whenever one changes
+// (graphics too when the device's motion setting does)
 export function onSettingsChange(fn) {
   listeners.add(fn);
 }

@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Oslo Haggadone</title>
+  <meta name="description" content="Stream every song by Oslo Haggadone for free.">
+  <meta name="theme-color" content="#050b15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Oslo Haggadone">
+  <meta property="og:description" content="Stream every song by Oslo Haggadone for free.">
+  <link rel="icon" href="images/icon-64.png" type="image/png">
+  <link rel="apple-touch-icon" href="images/icon-180.png">
+  <link rel="preload" href="fonts/kazesawa-regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/exo-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Apply the saved settings (js/settings.js) before the page is drawn, so it never flashes other
+    // colors or starts animations the listener turned off.
+    try {
+      const palette = localStorage.getItem("synopsist.palette");
+      if (["hollow-journey-beyond", "planetary-fields", "eternal-synopsis"].includes(palette)) document.documentElement.dataset.palette = palette;
+      const theme = localStorage.getItem("synopsist.theme");
+      if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      const graphics = localStorage.getItem("synopsist.graphics");
+      if (graphics === "low" || graphics === "off") document.documentElement.dataset.graphics = graphics;
+    } catch {}
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<!-- Three pages in one document, so the music keeps playing between them: the landing page at "/",
+     the music page at "/#music" (or any other link into it, like "/#song-space-rain"), and the
+     settings at "/#settings". -->
+<body data-view="home">
+  <svg class="icons" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 6.2v11.6a.8.8 0 0 0 1.2.7l8.6-5.8a.8.8 0 0 0 0-1.4L6.2 5.5A.8.8 0 0 0 5 6.2z"/><rect x="16.5" y="5.5" width="2.5" height="13" rx="1"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 6.2v11.6a.8.8 0 0 1-1.2.7l-8.6-5.8a.8.8 0 0 1 0-1.4l8.6-5.8a.8.8 0 0 1 1.2.7z"/><rect x="5" y="5.5" width="2.5" height="13" rx="1"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h4v4M4 20 20 4M20 16v4h-4M15 15l5 5M4 4l5 5"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="m22 9-6 6M16 9l6 6"/></symbol>
+    <symbol id="i-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h12M4 12h12M4 18h8"/><path d="M18 14v6l4-3z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-play-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h10M3 12h7M3 18h7"/><path d="M15 11v8l6-4z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9.84 4.92L10.21 2.36L13.79 2.36L14.16 4.92A7.4 7.4 0 0 1 15.47 5.47L17.55 3.92L20.08 6.45L18.53 8.53A7.4 7.4 0 0 1 19.08 9.84L21.64 10.21L21.64 13.79L19.08 14.16A7.4 7.4 0 0 1 18.53 15.47L20.08 17.55L17.55 20.08L15.47 18.53A7.4 7.4 0 0 1 14.16 19.08L13.79 21.64L10.21 21.64L9.84 19.08A7.4 7.4 0 0 1 8.53 18.53L6.45 20.08L3.92 17.55L5.47 15.47A7.4 7.4 0 0 1 4.92 14.16L2.36 13.79L2.36 10.21L4.92 9.84A7.4 7.4 0 0 1 5.47 8.53L3.92 6.45L6.45 3.92L8.53 5.47A7.4 7.4 0 0 1 9.84 4.92Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-details" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14v4M8 9v9M12 5v13M16 11v7M20 8v10"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+  </svg>
+
+  <!-- behind every page, the night of the Hollow Journey cover (style.css): moonlight that follows the
+       music, the moon, and a skyline of leaning slabs in three layers, far to near (each slab a
+       rectangle standing on the bottom edge, tilted a few degrees, on a ground that reaches below the
+       screen for the title screen's parallax to lift); then the song effects (js/effects.js) -->
+  <div class="scenery" aria-hidden="true">
+    <div class="sky"><i class="halo"></i><i class="haze"></i></div>
+    <i class="moon"></i>
+    <svg class="skyline far" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice"><polygon points="32,942 112,938 96,636 16,640"/><polygon points="172,939 236,941 247,601 183,599"/><polygon points="281,944 385,936 364,645 261,652"/><polygon points="437,938 495,941 514,580 456,577"/><polygon points="553,942 649,938 639,636 543,640"/><polygon points="704,937 774,942 797,609 728,604"/><polygon points="826,943 938,937 923,647 811,653"/><polygon points="980,939 1042,941 1054,595 992,593"/><polygon points="1081,942 1181,938 1170,626 1071,630"/><polygon points="1213,939 1257,941 1272,511 1228,509"/><polygon points="1289,937 1407,943 1423,637 1305,631"/><polygon points="1446,942 1516,937 1492,594 1422,599"/><polygon points="1523,938 1619,942 1629,644 1533,640"/><rect x="-400" y="934" width="2400" height="600"/></svg>
+    <svg class="skyline mid" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice"><polygon points="-57,936 93,944 105,704 -44,696"/><polygon points="121,945 238,935 215,664 97,674"/><polygon points="244,937 390,943 397,717 252,712"/><polygon points="424,942 520,937 506,676 410,681"/><polygon points="521,934 697,946 712,731 536,718"/><polygon points="723,942 835,938 826,684 715,688"/><polygon points="844,936 1012,944 1024,715 856,706"/><polygon points="1041,944 1145,936 1126,671 1022,678"/><polygon points="1138,937 1288,943 1295,717 1146,711"/><polygon points="1322,943 1442,937 1429,679 1309,685"/><polygon points="1441,934 1613,946 1629,712 1458,700"/><rect x="-400" y="934" width="2400" height="600"/></svg>
+    <svg class="skyline near" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice"><polygon points="-84,944 166,936 160,750 -90,758"/><polygon points="153,934 367,946 375,788 161,777"/><polygon points="356,942 618,938 614,740 352,744"/><polygon points="633,936 869,944 874,792 638,784"/><polygon points="871,945 1171,935 1165,755 865,765"/><polygon points="1135,940 1465,940 1465,738 1135,738"/><polygon points="1418,934 1638,946 1647,776 1427,764"/><rect x="-400" y="934" width="2400" height="600"/></svg>
+    <canvas class="effects" id="page-effects"></canvas>
+  </div>
+
+  <!-- ===== Landing page: a title screen, and a short summary below it ======================== -->
+  <section class="landing" id="landing" aria-label="Oslo Haggadone">
+    <a class="diamond-button settings-link landing-settings" href="#settings" aria-label="Settings" title="Settings"><svg><use href="#i-settings"/></svg></a>
+    <div class="landing-hero">
+      <div class="landing-content">
+        <div class="emblem" style="--n: 0">
+          <span class="emblem-ring"></span><span class="emblem-ring"></span>
+          <span class="avatar-glow"><img class="avatar" data-logo="large" src="images/profile.jpg" alt="Oslo Haggadone" width="512" height="512"></span>
+        </div>
+        <h1 class="logo-word" style="--n: 1" data-site="artist">Oslo Haggadone</h1>
+        <p class="landing-tagline" style="--n: 2" data-site="tagline"></p>
+        <p class="landing-stats" style="--n: 3" id="landing-stats"></p>
+        <a class="btn btn-primary btn-large" style="--n: 4" id="listen" href="#music"><span>Listen</span><svg><use href="#i-arrow"/></svg></a>
+        <div class="also-on" style="--n: 5"><span>Also on</span><ul class="artist-links"></ul></div>
+      </div>
+    </div>
+    <!-- below it: the artist's few words and points (site.js), and the releases (js/app.js) -->
+    <div class="landing-more">
+      <p class="landing-bio" data-site="bio" data-needs="bio"></p>
+      <ul class="landing-points" id="landing-points"></ul>
+      <section class="releases" id="releases" aria-labelledby="releases-title" hidden>
+        <h2 class="landing-heading" id="releases-title">Releases</h2>
+        <ul class="release-list" id="release-list"></ul>
+      </section>
+    </div>
+    <footer class="landing-footer">© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span></footer>
+  </section>
+
+  <!-- ===== Music page: a song-select screen ================================================= -->
+  <div class="player-page" id="player-page">
+    <a class="skip-link" href="#albums">Skip to the songs</a>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Oslo Haggadone home">
+        <span class="brand-mark"><img class="avatar" data-logo="small" src="images/icon-180.png" alt="" width="180" height="180"></span>
+        <span data-site="artist">Oslo Haggadone</span>
+      </a>
+      <nav aria-label="Sections">
+        <a href="#about" data-needs="bio">About</a>
+      </nav>
+      <a class="diamond-button settings-link" href="#settings" aria-label="Settings" title="Settings"><svg><use href="#i-settings"/></svg></a>
+    </header>
+
+    <main>
+      <section class="music" id="music" aria-labelledby="music-title">
+        <div class="music-head">
+          <div class="music-title">
+            <h1 class="section-title" id="music-title">Music</h1>
+            <p class="music-stats" id="music-stats"></p>
+          </div>
+          <div class="tools-right">
+            <label class="search">
+              <svg><use href="#i-search"/></svg>
+              <input type="search" id="search" placeholder="Search songs" autocomplete="off" aria-label="Search songs">
+            </label>
+            <!-- the songs' order (js/app.js, renderSongs): by album, or one list -->
+            <div class="dropdown sort" id="sort-choice">
+              <span id="sort-label" hidden>Sort songs by</span>
+              <button class="dropdown-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="sort-list" aria-labelledby="sort-label sort-value"><svg class="dropdown-icon"><use href="#i-sort"/></svg><span class="dropdown-value" id="sort-value"></span><svg class="dropdown-arrow"><use href="#i-chevron"/></svg></button>
+              <ul class="dropdown-list" id="sort-list" role="listbox" aria-labelledby="sort-label" tabindex="-1" hidden>
+                <li role="option" data-value="albums"><span class="option-name">Albums</span><span class="option-about">Each song under its album, newest first</span></li>
+                <li role="option" data-value="popular"><span class="option-name">Most popular</span><span class="option-about">Most played first</span></li>
+                <li role="option" data-value="newest"><span class="option-name">Release date</span><span class="option-about">Newest first</span></li>
+                <li role="option" data-value="title"><span class="option-name">A–Z</span><span class="option-about">By title</span></li>
+              </ul>
+            </div>
+            <button class="btn btn-primary" id="play-all"><svg><use href="#i-play"/></svg><span>Play all</span></button>
+            <button class="btn" id="shuffle-all"><svg><use href="#i-shuffle"/></svg><span>Shuffle</span></button>
+          </div>
+        </div>
+
+        <div class="select">
+          <!-- the song playing (before one plays, the first song) -->
+          <aside class="focus" id="focus" aria-label="Current song">
+            <div class="jacket" id="focus-jacket"></div>
+            <p class="focus-state" id="focus-state"></p>
+            <h2 class="focus-title" id="focus-title"></h2>
+            <p class="focus-album" id="focus-album"></p>
+            <p class="focus-meta" id="focus-meta"></p>
+            <div class="focus-actions">
+              <button class="btn btn-primary" id="focus-play"><svg><use href="#i-play"/></svg><span>Play</span></button>
+              <button class="icon-button" id="focus-next" aria-label="Play next" title="Play next"><svg><use href="#i-play-next"/></svg></button>
+              <button class="icon-button" id="focus-add" aria-label="Add to queue" title="Add to queue"><svg><use href="#i-add"/></svg></button>
+              <button class="icon-button" id="focus-details" aria-label="Song details" title="Song details"><svg><use href="#i-details"/></svg></button>
+            </div>
+          </aside>
+
+          <div class="song-list" id="song-list">
+            <p class="status" id="library-status">Loading the music…</p>
+            <div id="albums"></div>
+            <p class="status" id="no-results" hidden>No songs match your search.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel about" id="about" data-needs="bio" aria-labelledby="about-title">
+        <h2 class="section-title" id="about-title">About</h2>
+        <p data-site="bio"></p>
+        <ul class="artist-links"></ul>
+      </section>
+
+      <section class="panel privacy" id="privacy" aria-labelledby="privacy-title">
+        <h2 class="section-title" id="privacy-title">Privacy</h2>
+        <p>
+          <strong>What this site records.</strong> While you listen, the player notes what you do with each song:
+          when you press play or pause, skip a song, finish it, or jump to a different moment in it (for example from
+          2:22 back to 1:58). Each note holds the song, the moment in the song, and the time.
+        </p>
+        <p>
+          <strong>Why.</strong> It shows Oslo which parts of each song people replay, skip, or stop at, and it lets the
+          site recommend songs based on the moments you replay rather than on genre.
+        </p>
+        <p>
+          <strong>What it doesn't record.</strong> No name, email, account, or location, and no advertising or
+          third-party trackers. Your listening is linked only to a random ID created in this browser, never to your IP
+          address.
+        </p>
+        <label class="toggle">
+          <input type="checkbox" id="share-listening">
+          <span>Share my anonymous listening data</span>
+        </label>
+        <p class="fine">You can turn this off at any time. The player works the same either way, and turning it off also
+          deletes the random ID from this browser.</p>
+      </section>
+    </main>
+
+    <!-- ===== Settings page ("#settings"): js/settings.js keeps the choices, js/app.js shows them == -->
+    <section class="settings-page" id="settings" aria-labelledby="settings-title">
+      <a class="back-link" id="settings-back" href="#music"><svg><use href="#i-arrow"/></svg><span>Back</span></a>
+      <h1 class="section-title" id="settings-title">Settings</h1>
+      <p class="settings-intro">Saved in this browser only.</p>
+
+      <!-- each setting: its name, then small buttons (the chosen one pressed), a few with a short caption -->
+      <section class="settings-group" aria-labelledby="appearance-title">
+        <h2 id="appearance-title">Appearance</h2>
+        <!-- each a dropdown (js/dropdown.js): the button shows the choice, the list holds them all -->
+        <div class="setting">
+          <h3 id="palette-title">Theme</h3>
+          <div class="dropdown" id="palette-choice">
+            <button class="dropdown-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="palette-list" aria-labelledby="palette-title palette-value"><span class="dropdown-value" id="palette-value"></span><svg class="dropdown-arrow"><use href="#i-chevron"/></svg></button>
+            <!-- each theme's colors: its background and its three lights, on the side (light or dark) showing -->
+            <ul class="dropdown-list" id="palette-list" role="listbox" aria-labelledby="palette-title" tabindex="-1" hidden>
+              <li role="option" data-value="hollow-journey"><span class="swatches" data-palette-preview="hollow-journey"><i></i><i></i><i></i><i></i></span><span class="option-name">Hollow Journey</span></li>
+              <li role="option" data-value="hollow-journey-beyond"><span class="swatches" data-palette-preview="hollow-journey-beyond"><i></i><i></i><i></i><i></i></span><span class="option-name">Hollow Journey Beyond</span></li>
+              <li role="option" data-value="planetary-fields"><span class="swatches" data-palette-preview="planetary-fields"><i></i><i></i><i></i><i></i></span><span class="option-name">Planetary Fields</span></li>
+              <li role="option" data-value="eternal-synopsis"><span class="swatches" data-palette-preview="eternal-synopsis"><i></i><i></i><i></i><i></i></span><span class="option-name">Eternal Synopsis</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="setting">
+          <h3 id="mode-title">Mode</h3>
+          <div class="dropdown" id="mode-choice">
+            <button class="dropdown-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="mode-list" aria-labelledby="mode-title mode-value"><span class="dropdown-value" id="mode-value"></span><svg class="dropdown-arrow"><use href="#i-chevron"/></svg></button>
+            <ul class="dropdown-list" id="mode-list" role="listbox" aria-labelledby="mode-title" tabindex="-1" hidden>
+              <li role="option" data-value="auto"><span class="option-name">Auto</span><span class="option-about">Follows your device</span></li>
+              <li role="option" data-value="light"><span class="option-name">Light</span></li>
+              <li role="option" data-value="dark"><span class="option-name">Dark</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="setting">
+          <h3 id="graphics-title">Graphics</h3>
+          <div>
+            <div class="dropdown" id="graphics-choice">
+              <button class="dropdown-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="graphics-list" aria-labelledby="graphics-title graphics-value"><span class="dropdown-value" id="graphics-value"></span><svg class="dropdown-arrow"><use href="#i-chevron"/></svg></button>
+              <ul class="dropdown-list" id="graphics-list" role="listbox" aria-labelledby="graphics-title" tabindex="-1" hidden>
+                <li role="option" data-value="high"><span class="option-name">High</span><span class="option-tag" hidden>Recommended</span><span class="option-about">Every effect</span></li>
+                <li role="option" data-value="low"><span class="option-name">Low</span><span class="option-tag" hidden>Recommended</span><span class="option-about">Lighter, for slower devices</span></li>
+                <li role="option" data-value="off"><span class="option-name">Off</span><span class="option-tag" hidden>Recommended</span><span class="option-about">No motion or effects</span></li>
+              </ul>
+            </div>
+            <p class="settings-note" id="motion-note" hidden>Your device asks for less motion, so nothing moves, whatever this is set to.</p>
+            <!-- what's recommended for this device, and what that's based on (js/device.js) -->
+            <p class="settings-note advice" id="graphics-advice" hidden><span id="graphics-advice-text"></span> <button class="text-button" id="graphics-advice-use" hidden></button></p>
+            <p class="settings-note" id="graphics-device" hidden></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-group" aria-labelledby="sound-title">
+        <h2 id="sound-title">Sound</h2>
+        <div class="setting">
+          <h3 id="eq-title">EQ</h3>
+          <div class="dropdown" id="eq-choice">
+            <button class="dropdown-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="eq-list" aria-labelledby="eq-title eq-value"><span class="dropdown-value" id="eq-value"></span><svg class="dropdown-arrow"><use href="#i-chevron"/></svg></button>
+            <!-- the presets' amounts are in js/eq.js -->
+            <ul class="dropdown-list" id="eq-list" role="listbox" aria-labelledby="eq-title" tabindex="-1" hidden>
+              <li role="option" data-value="flat"><span class="option-name">Flat</span><span class="option-about">As it was mixed</span></li>
+              <li role="option" data-value="bass-boost"><span class="option-name">Bass boost</span><span class="option-about">More low end</span></li>
+              <li role="option" data-value="bass-reduce"><span class="option-name">Bass reduce</span><span class="option-about">Less low end</span></li>
+              <li role="option" data-value="treble-boost"><span class="option-name">Treble boost</span><span class="option-about">Brighter highs</span></li>
+              <li role="option" data-value="vocal-boost"><span class="option-name">Vocal boost</span><span class="option-about">Voices and melodies forward</span></li>
+              <li role="option" data-value="electronic"><span class="option-name">Electronic</span><span class="option-about">Deep lows, crisp highs</span></li>
+              <li role="option" data-value="small-speakers"><span class="option-name">Small speakers</span><span class="option-about">Fuller on laptops and phones</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="setting">
+          <h3 id="live-eq-title">Live EQ</h3>
+          <div>
+            <label class="toggle">
+              <input type="checkbox" id="live-eq-setting" aria-labelledby="live-eq-title live-eq-text">
+              <span id="live-eq-text">Show it along the bottom of the screen</span>
+            </label>
+            <p class="settings-note" id="live-eq-note" hidden>Hidden while Graphics is Off.</p>
+          </div>
+        </div>
+        <p class="settings-note" id="ios-sound-note" hidden>On iPhone and iPad, the music may stop when the screen locks while the EQ or the live EQ is on.</p>
+      </section>
+
+      <section class="settings-group" aria-labelledby="sharing-title">
+        <h2 id="sharing-title">Listening data</h2>
+        <label class="toggle">
+          <input type="checkbox" id="share-listening-settings">
+          <span>Share my anonymous listening data</span>
+        </label>
+        <p class="settings-note">What you play, pause, skip, and replay, linked only to a random ID made in this browser. Turning it off deletes that ID. <a href="#privacy">Read the privacy note</a></p>
+      </section>
+
+      <section class="settings-group" aria-labelledby="keys-title">
+        <h2 id="keys-title">Keyboard shortcuts</h2>
+        <dl class="shortcut-list">
+          <div><dt>Play or pause</dt><dd><kbd>Space</kbd></dd></div>
+          <div><dt>Back or ahead 5 seconds</dt><dd><kbd>←</kbd> <kbd>→</kbd></dd></div>
+          <div><dt>Next or previous song</dt><dd><kbd>N</kbd> <kbd>P</kbd></dd></div>
+          <div><dt>Shuffle</dt><dd><kbd>S</kbd></dd></div>
+          <div><dt>Repeat</dt><dd><kbd>R</kbd></dd></div>
+          <div><dt>Mute</dt><dd><kbd>M</kbd></dd></div>
+          <div><dt>Queue</dt><dd><kbd>Q</kbd></dd></div>
+          <div><dt>Song details</dt><dd><kbd>D</kbd></dd></div>
+          <div><dt>Full screen</dt><dd><kbd>F</kbd></dd></div>
+          <div><dt>Close, or go back</dt><dd><kbd>Esc</kbd></dd></div>
+        </dl>
+      </section>
+    </section>
+
+    <footer class="site-footer">
+      <div class="also-on"><span>Also on</span><ul class="artist-links"></ul></div>
+      <p>© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span>. All songs free to stream.</p>
+      <p class="shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> seek · <kbd>N</kbd>/<kbd>P</kbd> next/previous · <kbd>S</kbd> shuffle · <kbd>R</kbd> repeat · <kbd>Q</kbd> queue · <kbd>D</kbd> song details · <kbd>F</kbd> full screen</p>
+    </footer>
+  </div>
+
+  <!-- ===== Full-screen view: the cover over a slowly moving backdrop in its colors ============= -->
+  <div class="visual" id="visual" aria-hidden="true">
+    <!-- the album's colors, twice: when the album changes, its colors go on the copy that isn't
+         showing, and that copy fades in over the other (js/app.js, showPalette) -->
+    <div class="backdrops" aria-hidden="true">
+      <div class="backdrop palette on"><i></i><i></i><i></i><i></i></div>
+      <div class="backdrop palette"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <!-- some songs' own light, particles, and rays (js/effects.js), in layers around the cover -->
+    <div class="scenes" aria-hidden="true"></div>
+    <canvas class="effects" id="visual-effects" aria-hidden="true"></canvas>
+    <div class="visual-frame">
+      <span class="visual-glow" aria-hidden="true"><i class="palette on"></i><i class="palette"></i></span>
+      <div class="visual-art"><div class="visual-cover" id="visual-cover"></div></div>
+      <span class="visual-flash" id="visual-flash" aria-hidden="true"></span>
+    </div>
+    <canvas class="effects effects-front" id="visual-front" aria-hidden="true"></canvas>
+    <span class="visual-vignette" aria-hidden="true"></span>
+    <button class="icon-button visual-exit" id="visual-exit" aria-label="Exit full screen" title="Exit full screen (F)"><svg><use href="#i-collapse"/></svg></button>
+  </div>
+
+  <!-- panels that slide in from the side: the queue, and the details of a song -->
+  <aside class="side-panel" id="queue-panel" aria-labelledby="queue-title" inert>
+    <div class="side-head">
+      <h2 class="section-title" id="queue-title">Queue</h2>
+      <button class="icon-button" id="queue-close" aria-label="Close queue"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="side-body">
+      <h3>Now playing</h3>
+      <ol class="queue-list" id="queue-current"></ol>
+      <div class="queue-section" id="queue-added-section">
+        <div class="queue-section-head"><h3>Next in queue</h3><button class="text-button" id="clear-added">Clear</button></div>
+        <ol class="queue-list" id="queue-added"></ol>
+      </div>
+      <div class="queue-section" id="queue-context-section">
+        <div class="queue-section-head"><h3 id="queue-context-title">Next up</h3><button class="text-button" id="clear-context">Clear</button></div>
+        <ol class="queue-list" id="queue-context"></ol>
+      </div>
+      <p class="status" id="queue-empty">Nothing else is queued. Use <svg class="inline-icon"><use href="#i-add"/></svg> on a song to add it.</p>
+    </div>
+  </aside>
+
+  <aside class="side-panel details-panel" id="details-panel" aria-labelledby="details-title" inert>
+    <div class="side-head">
+      <h2 class="section-title" id="details-title">Song details</h2>
+      <button class="icon-button" id="details-close" aria-label="Close song details"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="side-body" id="details-body"></div>
+  </aside>
+
+  <div class="player-bar" id="player-bar" aria-label="Player" role="region">
+    <div class="now">
+      <button class="now-cover" id="now-cover" aria-label="Full screen" title="Full screen (F)" disabled></button>
+      <div class="now-text">
+        <p class="now-title" id="now-title">Pick a song to start</p>
+        <p class="now-album" id="now-album"></p>
+      </div>
+      <button class="icon-button small" id="copy-link" aria-label="Copy a link to this song" title="Copy link" disabled><svg><use href="#i-link"/></svg></button>
+    </div>
+    <div class="transport">
+      <div class="controls">
+        <button class="icon-button toggle-button" id="shuffle" aria-label="Shuffle" aria-pressed="false" title="Shuffle (S)"><svg><use href="#i-shuffle"/></svg></button>
+        <button class="icon-button" id="prev" aria-label="Previous" title="Previous (P)"><svg><use href="#i-prev"/></svg></button>
+        <button class="play-button" id="play" aria-label="Play" title="Play (Space)"><svg><use href="#i-play"/></svg></button>
+        <button class="icon-button" id="next" aria-label="Next" title="Next (N)"><svg><use href="#i-next"/></svg></button>
+        <button class="icon-button toggle-button" id="repeat" aria-label="Repeat: off" aria-pressed="false" title="Repeat (R)"><svg><use href="#i-repeat"/></svg><span class="repeat-one">1</span></button>
+      </div>
+      <div class="progress">
+        <span class="time" id="time-current">0:00</span>
+        <!-- the song's wave (js/wave.js) behind the seek line; the part already played is lit -->
+        <div class="seek" id="seek-wrap">
+          <div class="wave" id="wave" aria-hidden="true">
+            <svg viewBox="0 0 1000 100" preserveAspectRatio="none"><path class="wave-shape"/><path class="wave-reflection"/></svg>
+            <svg class="wave-played" viewBox="0 0 1000 100" preserveAspectRatio="none">
+              <defs><linearGradient id="wave-fill"><stop offset="0" class="wave-from"/><stop offset="1" class="wave-to"/></linearGradient></defs>
+              <path class="wave-shape"/><path class="wave-reflection"/>
+            </svg>
+          </div>
+          <input type="range" class="slider" id="seek" min="0" max="1" step="0.1" value="0" aria-label="Seek" disabled>
+          <span class="seek-tip" id="seek-tip" hidden></span>
+        </div>
+        <span class="time" id="time-total">0:00</span>
+      </div>
+    </div>
+    <div class="extras">
+      <div class="volume" id="volume-group">
+        <button class="icon-button" id="mute" aria-label="Mute" title="Mute (M)"><svg><use href="#i-volume"/></svg></button>
+        <input type="range" class="slider" id="volume" min="0" max="1" step="0.01" value="1" aria-label="Volume">
+      </div>
+      <button class="icon-button" id="details-toggle" aria-label="Song details" aria-expanded="false" aria-controls="details-panel" title="Song details (D)" disabled><svg><use href="#i-details"/></svg></button>
+      <button class="icon-button" id="queue-toggle" aria-label="Show queue" aria-expanded="false" aria-controls="queue-panel" title="Queue (Q)"><svg><use href="#i-queue"/></svg></button>
+      <button class="icon-button" id="fullscreen" aria-label="Full screen" aria-pressed="false" title="Full screen (F)" disabled><svg><use href="#i-expand"/></svg></button>
+    </div>
+  </div>
+
+  <!-- the live EQ (Settings > Sound): see-through bars along the bottom of the screen (js/liveeq.js) -->
+  <canvas class="live-eq" id="live-eq" aria-hidden="true" hidden></canvas>
+
+  <!-- page changes: angled panels sweep across the screen -->
+  <div class="shutter" id="shutter" aria-hidden="true">
+    <i></i><i></i>
+    <i><span class="shutter-label"><img class="avatar" data-logo="small" src="images/icon-180.png" alt="" width="180" height="180"><span id="shutter-text"></span></span></i>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

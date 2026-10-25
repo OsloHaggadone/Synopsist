@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environment
+.venv/
+
+# Secrets (API keys, storage credentials)
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data: audio, embeddings, database. Only the song catalog is tracked.
+/data/*
+!/data/catalog.csv
+
+# Essentia model files
+/models/
+
+# Audio and database files
+*.mp3
+*.wav
+*.flac
+*.aac
+*.m4a
+*.ogg
+*.db
+*.sqlite
+*.sqlite3
+# except the website's copies of the songs (written by scripts/build_catalog.py): they're in the
+# repository so GitHub Pages can stream them
+!/player/library/audio/*
+
+# Windows metadata created when copying files into WSL
+*:Zone.Identifier

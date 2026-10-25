@@ -16,7 +16,6 @@
   --font: "Kazesawa", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --display: "Exo", "Kazesawa", ui-sans-serif, system-ui, sans-serif;
   --ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
-  --ease-in-out: cubic-bezier(0.7, 0, 0.3, 1);
   --skew: -14deg;
   --radius: 3px;
   --bar-h: 96px; /* measured by app.js */
@@ -514,9 +513,11 @@ body.has-track .landing-hero { padding-bottom: calc(var(--bar-h) + 1.5rem); }
    while it's still loading) */
 @keyframes rise { from { opacity: 0; transform: translateY(22px); } }
 
+/* the emblem is a link back to the artist's main site (the portfolio): pointing at it lights its rings */
 .emblem { position: relative; display: grid; place-items: center; width: clamp(160px, 22vw, 220px); aspect-ratio: 1; margin-bottom: 0.4rem; }
-.emblem-ring { position: absolute; inset: 3%; border: 1px solid var(--line-strong); animation: turn 26s steps(780) infinite; }
+.emblem-ring { position: absolute; inset: 3%; border: 1px solid var(--line-strong); animation: turn 26s steps(780) infinite; transition: border-color 0.2s; }
 .emblem-ring + .emblem-ring { inset: 13%; border-color: color-mix(in srgb, var(--accent-3) 55%, transparent); animation-duration: 17s; animation-timing-function: steps(510); animation-direction: reverse; }
+.emblem:hover .emblem-ring { border-color: var(--accent); }
 @keyframes turn { from { transform: rotate(45deg); } to { transform: rotate(405deg); } }
 /* the profile picture, as a diamond */
 .avatar-glow { position: relative; width: 68%; aspect-ratio: 1; filter: drop-shadow(0 0 26px color-mix(in srgb, var(--accent-3) 45%, transparent)); animation: float 8s steps(30) infinite; }
@@ -1324,30 +1325,11 @@ body.visual-covered .scenery { visibility: hidden; }
 .toast::before { content: ""; position: absolute; inset: 0; z-index: -1; transform: skewX(var(--skew)); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-solid); box-shadow: 0 10px 30px var(--shadow); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* --- light and dark, the themes, and the settings page coming and going: a quick cross-fade
-   (with view transitions; else at once) -------------------------------------------------------- */
+/* --- page changes, light and dark, and the themes: a quick cross-fade (with view transitions; else
+   at once) -------------------------------------------------------------------------------------- */
 
 html.cross-fading::view-transition-old(root),
 html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animation-timing-function: ease; }
-
-/* --- page changes: angled panels sweep across ------------------------------------------------- */
-
-.shutter { position: fixed; inset: 0; z-index: 100; overflow: hidden; pointer-events: none; visibility: hidden; }
-.shutter.closing, .shutter.opening { visibility: visible; pointer-events: auto; }
-.shutter i { position: absolute; top: 0; bottom: 0; left: -60vh; right: -60vh; transform: translateX(110%) skewX(-20deg); }
-.shutter i:nth-child(1) { background: linear-gradient(105deg, var(--accent-strong), var(--accent-3)); }
-.shutter i:nth-child(2) { background: linear-gradient(105deg, var(--accent-2), var(--accent)); }
-.shutter i:nth-child(3) { display: grid; place-items: center; background: linear-gradient(180deg, var(--bg), var(--bg-2)); }
-.shutter-label { display: flex; align-items: center; gap: 1rem; transform: skewX(20deg); color: var(--text); font: 400 clamp(1rem, 3vw, 1.6rem) var(--display); letter-spacing: 0.32em; text-transform: uppercase; }
-.shutter-label .avatar { width: 2.6em; height: 2.6em; object-fit: cover; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.shutter.closing i { animation: shut-in 0.38s var(--ease-in-out) forwards; }
-.shutter.closing i:nth-child(2) { animation-delay: 0.05s; }
-.shutter.closing i:nth-child(3) { animation-delay: 0.1s; }
-.shutter.opening i { transform: translateX(0) skewX(-20deg); animation: shut-out 0.42s var(--ease-in-out) forwards; }
-.shutter.opening i:nth-child(1) { animation-delay: 0.1s; }
-.shutter.opening i:nth-child(2) { animation-delay: 0.05s; }
-@keyframes shut-in { from { transform: translateX(110%) skewX(-20deg); } to { transform: translateX(0) skewX(-20deg); } }
-@keyframes shut-out { from { transform: translateX(0) skewX(-20deg); } to { transform: translateX(-110%) skewX(-20deg); } }
 
 /* --- settings page ("#settings"; js/app.js, js/settings.js) ------------------------------------ */
 

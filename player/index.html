@@ -74,10 +74,11 @@
     <a class="diamond-button settings-link landing-settings" href="#settings" aria-label="Settings" title="Settings"><svg><use href="#i-settings"/></svg></a>
     <div class="landing-hero">
       <div class="landing-content">
-        <div class="emblem" style="--n: 0">
+        <!-- the big logo leads back to the artist's main site: the portfolio, one folder up -->
+        <a class="emblem" style="--n: 0" href="../" title="Oslo Haggadone’s main site">
           <span class="emblem-ring"></span><span class="emblem-ring"></span>
-          <span class="avatar-glow"><img class="avatar" data-logo="large" src="images/profile.jpg" alt="Oslo Haggadone" width="512" height="512"></span>
-        </div>
+          <span class="avatar-glow"><img class="avatar" data-logo="large" src="images/profile.jpg" alt="Oslo Haggadone’s main site" width="512" height="512"></span>
+        </a>
         <h1 class="logo-word" style="--n: 1" data-site="artist">Oslo Haggadone</h1>
         <p class="landing-tagline" style="--n: 2" data-site="tagline"></p>
         <p class="landing-stats" style="--n: 3" id="landing-stats"></p>
@@ -408,12 +409,6 @@
 
   <!-- the live EQ (Settings > Sound): see-through bars along the bottom of the screen (js/liveeq.js) -->
   <canvas class="live-eq" id="live-eq" aria-hidden="true" hidden></canvas>
-
-  <!-- page changes: angled panels sweep across the screen -->
-  <div class="shutter" id="shutter" aria-hidden="true">
-    <i></i><i></i>
-    <i><span class="shutter-label"><img class="avatar" data-logo="small" src="images/icon-180.png" alt="" width="180" height="180"><span id="shutter-text"></span></span></i>
-  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>

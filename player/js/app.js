@@ -4,8 +4,8 @@
 //
 // The pages live in this one document so the music never stops between them: no "#" in the address
 // shows the landing page, "#settings" the settings, and any other link ("#music", "#song-space-rain")
-// the music page. Changing page sweeps a shutter of angled panels across the screen; going to or
-// from the settings cross-fades instead, as changing the theme, or between light and dark, does.
+// the music page. Changing page cross-fades quickly, as changing the theme, or between light and
+// dark, does.
 
 import { SITE } from "../site.js";
 import { loadAnalysis } from "./analysis.js";
@@ -54,7 +54,6 @@ function totalTime(seconds) {
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const twoDigits = (n) => String(n).padStart(2, "0");
 const searchable = (text) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 
 // Album art, or a cover drawn in the album's own colors when there's no image yet.
 function coverArt(album, large = false) {
@@ -75,33 +74,6 @@ function toast(message) {
   toastTimer = setTimeout(() => box.classList.remove("show"), 2600);
 }
 
-// --- the shutter: angled panels sweep in, the change happens behind them, they sweep out --------
-
-let shutterBusy = false;
-
-function panelsDone(shutter) {
-  const ends = [...shutter.children].map((panel) => new Promise((done) => panel.addEventListener("animationend", done, { once: true })));
-  return Promise.race([Promise.all(ends), wait(1200)]); // the timeout covers a hidden tab
-}
-
-async function shutter(change, label) {
-  if (shutterBusy || graphics() === "off") {
-    change();
-    return;
-  }
-  shutterBusy = true;
-  const panels = $("#shutter");
-  $("#shutter-text").textContent = label;
-  panels.className = "shutter closing";
-  await panelsDone(panels);
-  change();
-  await wait(100);
-  panels.className = "shutter opening";
-  await panelsDone(panels);
-  panels.className = "shutter";
-  shutterBusy = false;
-}
-
 // --- the colors: a theme from an album cover, light or dark -------------------------------------
 
 function currentTheme() {
@@ -113,8 +85,7 @@ function showTheme() {
   $('meta[name="theme-color"]').content = getComputedStyle(document.body).backgroundColor;
 }
 
-// A quick cross-fade while the colors change, or the settings page comes or goes, where the browser
-// can.
+// A quick cross-fade while the page or the colors change, where the browser can.
 function crossFade(change) {
   if (!document.startViewTransition || graphics() === "off") {
     change();
@@ -261,11 +232,9 @@ function showView(firstLoad) {
       return;
     }
     goTo(hash, switching || firstLoad);
-    if (switching) animateList();
   };
   if (!switching || firstLoad) apply();
-  else if (view === "settings" || from === "settings") crossFade(apply); // quicker and calmer than the shutter
-  else shutter(apply, view === "home" ? SITE.artist : "Music");
+  else crossFade(apply); // just a quick fade: the user found the old sweep of panels and rows too much
 }
 
 // Land on what a link points at: a song (loaded, ready to play), an album ("#album-hollow-journey"),

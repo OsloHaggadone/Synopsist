@@ -96,13 +96,13 @@
    "title": "Dread Journey",
    "release_date": null,
    "year": null,
-   "cover": null,
-   "cover_large": null,
+   "cover": "covers/dread-journey-640.02e6aa2b36.jpg",
+   "cover_large": "covers/dread-journey-1400.20099f714a.jpg",
    "colors": [
-    "hsl(175 70% 55%)",
-    "hsl(210 70% 15%)",
-    "hsl(135 75% 45%)",
-    "hsl(255 65% 40%)"
+    "#949494",
+    "#292929",
+    "#757575",
+    "#5c5c5c"
    ],
    "tracks": [
     "ephemeral-synopsis"
@@ -113,13 +113,13 @@
    "title": "Hollow Journey Delta Side",
    "release_date": null,
    "year": null,
-   "cover": null,
-   "cover_large": null,
+   "cover": "covers/hollow-journey-delta-side-640.02e6aa2b36.jpg",
+   "cover_large": "covers/hollow-journey-delta-side-1400.20099f714a.jpg",
    "colors": [
-    "hsl(271 70% 55%)",
-    "hsl(306 70% 15%)",
-    "hsl(231 75% 45%)",
-    "hsl(351 65% 40%)"
+    "#949494",
+    "#292929",
+    "#757575",
+    "#5c5c5c"
    ],
    "tracks": [
     "absolute-zero",

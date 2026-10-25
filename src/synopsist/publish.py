@@ -96,6 +96,10 @@ def album_palette(albums: dict[str, list[dict]]) -> dict[str, list[str]]:
 # moody, dark covers still give the site an album stripe you can see and a full-screen backdrop
 # that glows. The first color is the album's accent; the second stays deep.
 COLOR_FLOORS = [(0.58, 0.42), (0.16, 0.3), (0.46, 0.38), (0.36, 0.36)]  # (lightness, saturation)
+# Artwork with hardly any color (under GRAY_SHARE of its pixels with channels GRAY_CHROMA or more
+# apart, out of 255) gives grays, only lightened: a gray has no hue, and saturating one paints it
+# red, colorsys's hue for gray. (The least colorful official cover, Hollow Journey's, has 19%.)
+GRAY_CHROMA, GRAY_SHARE = 12, 0.02
 
 
 def _lift(rgb: tuple[int, int, int], lightness: float, saturation: float) -> str:
@@ -106,7 +110,7 @@ def _lift(rgb: tuple[int, int, int], lightness: float, saturation: float) -> str
 
 def cover_colors(image: Image.Image) -> list[str]:
     """Four colors from the artwork: its most common colors, skipping near-duplicates, most common
-    first, lifted to COLOR_FLOORS."""
+    first, lifted to COLOR_FLOORS (gray artwork's only in lightness)."""
     small = image.convert("RGB").resize((64, 64))
     quantized = small.quantize(colors=12, method=Image.Quantize.MEDIANCUT)
     flat = quantized.getpalette()
@@ -118,7 +122,9 @@ def cover_colors(image: Image.Image) -> list[str]:
         if len(picked) == 4:
             break
     picked += [picked[n % len(picked)] for n in range(4 - len(picked))]  # artwork with few colors
-    return [_lift(rgb, *floor) for rgb, floor in zip(picked, COLOR_FLOORS)]
+    pixels = np.asarray(small, dtype=int)
+    gray = ((pixels.max(axis=2) - pixels.min(axis=2)) >= GRAY_CHROMA).mean() < GRAY_SHARE
+    return [_lift(rgb, lightness, 0 if gray else saturation) for rgb, (lightness, saturation) in zip(picked, COLOR_FLOORS)]
 
 
 def _percent(values) -> list[int]:

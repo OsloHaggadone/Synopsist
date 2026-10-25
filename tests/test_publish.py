@@ -64,6 +64,16 @@ def test_cover_colors_come_from_the_artwork():
     assert abs(hls[1][0] - colorsys.rgb_to_hls(230 / 255, 90 / 255, 40 / 255)[0]) < 0.01  # then orange
 
 
+def test_gray_artwork_gives_gray_colors():
+    image = Image.new("RGB", (100, 100), (12, 12, 12))
+    image.paste((70, 70, 70), (0, 0, 100, 30))  # a dark gray cover with a lighter band: no color at all
+    colors = cover_colors(image)
+    for color in colors:
+        r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+        assert r == g == b  # still gray (lifting its saturation turned gray into red)
+    assert int(colors[0][1:3], 16) >= 0.57 * 255  # but lifted, so it shows up on a dark page
+
+
 @pytest.fixture
 def library(tmp_path):
     """Two albums of tiny real MP3s registered in a test database, one album with cover art."""

@@ -130,6 +130,7 @@ def test_publish_writes_the_website_library(library):
     loud = tracks["loud"]
     assert loud["src"].startswith("audio/loud.") and loud["src"].endswith(".mp3")
     assert (loud["bpm"], loud["key"]) == (None, None)  # not analyzed in this test database
+    assert (loud["release_date"], tracks["other"]["release_date"]) == ("2024-05-01", None)  # each song's own
     published = (out / loud["src"]).read_bytes()
     assert published == mp3gain.apply_gain((stream / "A" / "loud.mp3").read_bytes(), gain_steps(-8.0, 1.0))
 

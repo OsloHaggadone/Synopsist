@@ -26,6 +26,46 @@ export const SITE = {
     "eternal-synopsis", "planetary-fields-final-ver",
   ],
 
+  // How many times each song has been streamed, shown on its row and beside it while it plays: put
+  // each number in place of its null (no quotes or commas: 12345). Copy them from your streaming
+  // stats (Amuse adds up every store; Spotify shows each song's plays), and put the day you took them
+  // in streamsAsOf, as "2026-10-24". A song left at null shows no number. Once the site keeps its own
+  // listening data (ROADMAP, Phase 3), it can count its own plays too.
+  streams: {
+    // Eternal Synopsis Single
+    "eternal-synopsis": null,
+    // Hollow Journey Beyond
+    "hollow-journey-beyond": null,
+    "volition": null,
+    "crimson-eclipse": null,
+    "impulse": null,
+    "flowers-about": null,
+    "planetary-fields-2024-remastered-version": null,
+    "jiggly-cake": null,
+    "glistening-dawn": null,
+    "you-know-what-that-means": null,
+    "facades": null,
+    "journey": null,
+    "dying-light": null,
+    // Planetary Fields
+    "planetary-fields-final-ver": null,
+    "planetary-fields-milestone": null,
+    // Hollow Journey
+    "hollow-journey": null,
+    "electric-space": null,
+    "into-space": null,
+    "space-rain": null,
+    "zero-gravity": null,
+    "negative-space": null,
+    "tropical-space-day": null,
+    "tropical-space-day-extended": null,
+    "bad-boy": null,
+    "spacial-awareness": null,
+    "delta-gravity-delta-side": null,
+    "hollow-truth": null,
+  },
+  streamsAsOf: "",
+
   // Your profile picture, used as the site's logo (a square image in player/images/). The small
   // logo in the top bar uses a close-up so it stays recognizable at that size.
   logo: "images/profile.jpg",

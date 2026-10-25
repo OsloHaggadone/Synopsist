@@ -55,6 +55,16 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const twoDigits = (n) => String(n).padStart(2, "0");
 const searchable = (text) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
+// A release date ("2023-10-31") as people write it, "Oct 31, 2023": the day itself, read in UTC so it
+// doesn't show the day before west of Greenwich.
+const dayFormat = new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+const showDate = (iso) => (iso ? dayFormat.format(new Date(iso)) : null);
+
+// How many times a song has been streamed: the artist's own numbers in site.js, or null if not given.
+const streamsOf = (id) => (Number.isFinite(SITE.streams?.[id]) ? SITE.streams[id] : null);
+const streamCount = (n) => `${n.toLocaleString("en")} stream${n === 1 ? "" : "s"}`;
+const asOf = () => (SITE.streamsAsOf ? `as of ${showDate(SITE.streamsAsOf)}` : null);
+
 // Album art, or a cover drawn in the album's own colors when there's no image yet.
 function coverArt(album, large = false) {
   const src = large ? album.cover_large || album.cover : album.cover;
@@ -346,7 +356,17 @@ function renderTrack(track, number, list, withAlbum = false) {
     el("span", { class: "track-actions" },
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "next"), "aria-label": `Play ${track.title} next`, title: "Play next" }, icon("play-next")),
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "end"), "aria-label": `Add ${track.title} to the queue`, title: "Add to queue" }, icon("add"))),
+    streamsCell(track.id),
     el("span", { class: "track-time" }, clock(track.duration)));
+}
+
+// A song's streams on its row, when known: a plain number, with its unit for screen readers and on
+// hover (empty otherwise, so the row's length stays where it is).
+function streamsCell(id) {
+  const n = streamsOf(id);
+  if (n === null) return el("span", { class: "track-streams" });
+  return el("span", { class: "track-streams", title: [streamCount(n), asOf()].filter(Boolean).join(", ") },
+    n.toLocaleString("en"), el("span", { class: "visually-hidden" }, n === 1 ? " stream" : " streams"));
 }
 
 const albumList = (album) => ({ ids: album.tracks, label: album.title });
@@ -363,7 +383,7 @@ function sortedSongs(order) {
     return [...ranked, ...allIds.filter((id) => !ranked.includes(id))];
   }
   if (order === "newest") {
-    const released = (id) => albums.get(tracks.get(id).album).release_date ?? ""; // unreleased last
+    const released = (id) => tracks.get(id).release_date ?? albums.get(tracks.get(id).album).release_date ?? ""; // unreleased last
     return [...allIds].sort((a, b) => released(b).localeCompare(released(a))); // (a release keeps its order)
   }
   if (order === "title") return [...allIds].sort((a, b) => byTitle.compare(tracks.get(a).title, tracks.get(b).title));
@@ -431,8 +451,12 @@ function setFocus(id) {
       restart(jacket, "swap");
     }
     $("#focus-title").textContent = track.title;
-    $("#focus-album").textContent = [album.title, album.year].filter(Boolean).join(" · ");
-    $("#focus-meta").textContent = [clock(track.duration), track.bpm && `${track.bpm} BPM`, track.key].filter(Boolean).join(" · ");
+    // its album and the day it came out; its length, tempo, key, and streams (when site.js has them)
+    $("#focus-album").textContent = [album.title, showDate(track.release_date ?? album.release_date) ?? "Unreleased"].join(" · ");
+    const streams = streamsOf(id);
+    $("#focus-meta").textContent = [clock(track.duration), track.bpm && `${track.bpm} BPM`, track.key, streams !== null && streamCount(streams)]
+      .filter(Boolean).join(" · ");
+    $("#focus-meta").title = streams !== null && asOf() ? `${streamCount(streams)}, ${asOf()}` : "";
     for (const node of [$("#focus-title"), $("#focus-album"), $("#focus-meta")]) restart(node, "focus-text-swap");
   }
   showFocusState();

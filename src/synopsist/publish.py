@@ -309,6 +309,7 @@ def publish(conn: sqlite3.Connection, library: Path = LIBRARY_DIR, stream_dir: P
             "title": row["title"],
             "album": album_id,
             "track_no": row["track_no"],
+            "release_date": row["release_date"] or None,
             "duration": round(row["duration_s"], 2),
             "bpm": round(row["bpm"]) if row["bpm"] else None,
             "key": f"{row['key']} {row['scale']}" if row["key"] else None,

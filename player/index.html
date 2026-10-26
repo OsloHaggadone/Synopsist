@@ -6,7 +6,9 @@
   <title>Oslo Haggadone</title>
   <meta name="description" content="Stream every song by Oslo Haggadone for free.">
   <meta name="theme-color" content="#050b15">
-  <!-- added to an iPhone's Home Screen, the app fills the screen, under the clock (style.css keeps clear of it) -->
+  <!-- added to an iPhone's Home Screen, the app runs all the way up under the clock and battery, like
+       the title screen (Apple calls this setting old, but it's the only way there; iOS reads it when
+       the app is added) -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Oslo Haggadone">
@@ -27,6 +29,11 @@
       const graphics = localStorage.getItem("synopsist.graphics");
       if (graphics === "low" || graphics === "off") document.documentElement.dataset.graphics = graphics;
     } catch {}
+    // iPhones and iPads (an iPad says it's a Mac, but one with a touch screen), whose status bar
+    // takes its color from the page: style.css and app.js look after it
+    if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+      document.documentElement.dataset.ios = "";
+    }
   </script>
   <script type="module" src="js/app.js"></script>
 </head>
@@ -56,6 +63,7 @@
     <symbol id="i-details" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14v4M8 9v9M12 5v13M16 11v7M20 8v10"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></symbol>
     <!-- the heart and the star have no fill of their own: style.css fills them once they're on -->
     <symbol id="i-heart" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5 4.4 13a4.9 4.9 0 0 1 6.9-6.9l.7.7.7-.7a4.9 4.9 0 0 1 6.9 6.9z"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
@@ -433,6 +441,9 @@
 
   <!-- the live EQ (Settings > Sound): see-through bars along the bottom of the screen (js/liveeq.js) -->
   <canvas class="live-eq" id="live-eq" aria-hidden="true" hidden></canvas>
+
+  <!-- a song's menu, from the "···" on its row (phones; js/app.js, openMenu) -->
+  <div class="song-menu" id="song-menu" role="menu" hidden></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>

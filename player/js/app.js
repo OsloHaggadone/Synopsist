@@ -35,6 +35,8 @@ const SEEK_STEP_S = 5;
 const IDLE_MS = 2500; // in full screen, hide the pointer and the controls after this long without moving
 const LINK_NAMES = { spotify: "Spotify", appleMusic: "Apple Music", amazonMusic: "Amazon Music", youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok" };
 const prefersLight = matchMedia("(prefers-color-scheme: light)");
+const IOS = document.documentElement.hasAttribute("data-ios"); // an iPhone or iPad (index.html)
+const phoneLayout = matchMedia("(max-width: 720px)"); // where style.css lays the player out for phones
 
 let player;
 let albums; // id -> album
@@ -108,6 +110,13 @@ function crossFade(change) {
   document.startViewTransition(change).finished.finally(() => root.classList.remove("cross-fading"));
 }
 
+// New colors cross-fade in, except on iPhones and iPads: in Safari their status bar takes its color
+// from the top of the page, and the colors changing under a cross-fade can leave it the old one.
+function fadeColors(change) {
+  if (IOS) change();
+  else crossFade(change);
+}
+
 // Light, dark, or Auto (following the device).
 function chooseTheme(mode) {
   if (mode === themeSetting()) return;
@@ -117,13 +126,13 @@ function chooseTheme(mode) {
     showTheme();
   };
   if (after === currentTheme()) apply(); // the colors stay as they are
-  else crossFade(apply);
+  else fadeColors(apply);
 }
 
 // One of the album themes.
 function choosePalette(palette) {
   if (palette === paletteSetting()) return;
-  crossFade(() => {
+  fadeColors(() => {
     setPalette(palette);
     showTheme();
   });
@@ -198,8 +207,7 @@ function wireSettings() {
   $("#live-eq-setting").addEventListener("change", (event) => setLiveEq(event.target.checked));
   $("#ratings-setting").addEventListener("change", (event) => setRatings(event.target.checked));
   $("#graphics-advice-use").addEventListener("click", () => setGraphics(recommendation()));
-  // iPhones and iPads (an iPad says it's a Mac, but one with a touch screen)
-  $("#ios-sound-note").hidden = !/iP(hone|ad|od)/.test(navigator.userAgent) && !(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  $("#ios-sound-note").hidden = !IOS;
   onSettingsChange(showSettings);
   showSettings();
   wireSharing();
@@ -374,14 +382,19 @@ function renderTrack(track, number, list, withAlbum = false) {
         el("span", { class: "num" }, twoDigits(number)),
         el("span", { class: "eq" }, el("i"), el("i"), el("i")),
         icon("play")),
-      el("span", { class: "track-title" }, track.title, withAlbum && el("span", { class: "track-album" }, album.title))),
+      el("span", { class: "track-title" }, el("span", { class: "track-name" }, track.title), withAlbum && el("span", { class: "track-album" }, album.title))),
     el("span", { class: "track-actions" },
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "next"), "aria-label": `Play ${track.title} next`, title: "Play next" }, icon("play-next")),
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "end"), "aria-label": `Add ${track.title} to the queue`, title: "Add to queue" }, icon("add"))),
     heartButton(track),
     ratingsSetting() ? ratingStars(track) : null,
     streamsCell(track.id),
-    el("span", { class: "track-time" }, clock(track.duration)));
+    el("span", { class: "track-time" }, clock(track.duration)),
+    // (on phones, where the row has room only for its title: the rest is in this menu)
+    el("button", {
+      class: "icon-button small track-more", "aria-label": `More for ${track.title}`, "aria-haspopup": "menu", "aria-expanded": "false",
+      onclick: (event) => openMenu(event.currentTarget, track),
+    }, icon("more")));
 }
 
 // A song's streams on its row, when known: a plain number, with its unit for screen readers and on
@@ -417,6 +430,7 @@ function sortedSongs(order) {
 
 // The list: albums under their headings, or one list of all the songs, numbered in its order.
 function renderSongs() {
+  closeMenu();
   const order = sortSetting();
   if (order === "albums") {
     $("#albums").replaceChildren(...[...albums.values()].map(renderGroup));
@@ -559,6 +573,61 @@ function showMarks(id, what) {
     if (sortSetting() === "favorites") renderSongs();
   } else {
     for (const group of $$(".rating")) if (group.dataset.rating === id) showRating(group, id);
+  }
+}
+
+// --- a song's menu: on phones, its row's "···" (the row has room only for its title) ------------
+
+let menuFor = null; // the "···" whose menu is open
+
+function openMenu(button, track) {
+  if (menuFor === button) {
+    closeMenu();
+    return;
+  }
+  closeMenu();
+  const favorite = isFavorite(track.id);
+  const items = [
+    ["Play next", "play-next", () => queueSong(track, "next")],
+    ["Add to queue", "add", () => queueSong(track, "end")],
+    [favorite ? "Remove from favorites" : "Add to favorites", "heart", () => toggleFavorite(track.id)],
+    ["Song details", "details", () => openDetails(track.id)],
+    ["Copy link", "link", () => copyLink(track)],
+  ];
+  const menu = $("#song-menu");
+  menu.setAttribute("aria-label", track.title);
+  menu.replaceChildren(...items.map(([label, name, action]) => {
+    const symbol = icon(name);
+    if (name === "heart" && !favorite) symbol.style.fill = "none"; // (an outline until it's a favorite)
+    return el("button", { class: "menu-item", role: "menuitem", onclick: () => { closeMenu(); action(); } }, symbol, el("span", {}, label));
+  }));
+  menu.hidden = false;
+  // beside the button: under it, or over it where the player bar would cover it
+  const box = button.getBoundingClientRect();
+  const floor = innerHeight - (document.body.classList.contains("has-track") ? $("#player-bar").offsetHeight : 0);
+  const below = box.bottom + 4 + menu.offsetHeight <= floor;
+  menu.style.top = `${Math.max(8, below ? box.bottom + 4 : box.top - 4 - menu.offsetHeight)}px`;
+  menu.style.right = `${Math.max(8, innerWidth - box.right)}px`;
+  button.setAttribute("aria-expanded", "true");
+  menuFor = button;
+  menu.querySelector("button").focus({ preventScroll: true });
+}
+
+function closeMenu({ refocus = false } = {}) {
+  if (!menuFor) return;
+  $("#song-menu").hidden = true;
+  menuFor.setAttribute("aria-expanded", "false");
+  if (refocus) menuFor.focus({ preventScroll: true });
+  menuFor = null;
+}
+
+async function copyLink(track) {
+  const url = `${location.origin}${location.pathname}#song-${track.id}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Link copied");
+  } catch {
+    toast(url);
   }
 }
 
@@ -944,11 +1013,12 @@ function preloadNext() {
 // While the music plays and nothing moves, the pointer and the player bar get out of the way, like a
 // video player's controls; moving the pointer, a tap, or a key brings them back. A mouse resting on
 // the bar keeps it there; a finger doesn't (a touch screen leaves :hover on whatever it last tapped).
+// On a phone they always stay, as in a phone's music app (the user likes them there).
 function wake() {
   $("#visual").classList.remove("idle");
   document.body.classList.remove("controls-hidden");
   clearTimeout(idleTimer);
-  if (visualOpen() && player.playing) idleTimer = setTimeout(rest, IDLE_MS);
+  if (visualOpen() && player.playing && !phoneLayout.matches) idleTimer = setTimeout(rest, IDLE_MS);
 }
 
 function rest() {
@@ -1037,18 +1107,52 @@ function wireControls() {
   });
 
   const seek = $("#seek");
+  const wrap = $("#seek-wrap");
+  const showSeek = (seconds) => {
+    seek.value = seconds;
+    $("#time-current").textContent = clock(seconds);
+    wrap.style.setProperty("--fill", `${(seconds / (seek.max || 1)) * 100}%`);
+  };
+  // the keyboard and screen readers move the slider itself
   seek.addEventListener("input", () => {
     draggingSeek = true;
-    $("#time-current").textContent = clock(seek.value);
-    $("#seek-wrap").style.setProperty("--fill", `${(seek.value / (seek.max || 1)) * 100}%`);
+    showSeek(Number(seek.value));
   });
   seek.addEventListener("change", () => {
     draggingSeek = false;
     player.seek(Number(seek.value));
   });
+  // A finger or the mouse, as in a phone's music app: press anywhere along the bar and drag, and the
+  // song goes there when it's let go (on an iPhone the slider only moves from its handle).
+  const timeAt = (event) => {
+    const box = wrap.getBoundingClientRect();
+    return Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1) * player.duration;
+  };
+  wrap.addEventListener("pointerdown", (event) => {
+    if (!player.current || !player.duration || event.button > 0) return;
+    event.preventDefault(); // (no text selected, no page scrolled)
+    wrap.setPointerCapture(event.pointerId);
+    wrap.classList.add("scrubbing");
+    draggingSeek = true;
+    showSeek(timeAt(event));
+  });
+  wrap.addEventListener("pointermove", (event) => {
+    if (wrap.hasPointerCapture(event.pointerId)) showSeek(timeAt(event));
+  });
+  wrap.addEventListener("pointerup", (event) => {
+    if (!wrap.hasPointerCapture(event.pointerId)) return;
+    wrap.classList.remove("scrubbing");
+    draggingSeek = false;
+    player.seek(timeAt(event));
+  });
+  wrap.addEventListener("pointercancel", () => {
+    wrap.classList.remove("scrubbing");
+    draggingSeek = false;
+    showTime();
+  });
   // pointing along the seek bar shows the time there
   const tip = $("#seek-tip");
-  $("#seek-wrap").addEventListener("pointermove", (event) => {
+  wrap.addEventListener("pointermove", (event) => {
     if (!player.current || event.pointerType === "touch") return;
     const box = event.currentTarget.getBoundingClientRect();
     const x = Math.min(Math.max(event.clientX - box.left, 0), box.width);
@@ -1056,7 +1160,7 @@ function wireControls() {
     tip.style.left = `${x}px`;
     tip.hidden = false;
   });
-  $("#seek-wrap").addEventListener("pointerleave", () => {
+  wrap.addEventListener("pointerleave", () => {
     tip.hidden = true;
   });
 
@@ -1086,21 +1190,9 @@ function wireControls() {
       if (visualOpen()) wake();
     });
   }
-  // on a touch screen, a swipe down the full-screen view closes it, as in a phone's music app
-  let swipe = null;
-  $("#visual").addEventListener("pointerdown", (event) => {
-    swipe = event.pointerType === "touch" ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
-  });
-  $("#visual").addEventListener("pointerup", (event) => {
-    if (swipe?.id !== event.pointerId) return;
-    const down = event.clientY - swipe.y;
-    const across = Math.abs(event.clientX - swipe.x);
-    swipe = null;
-    if (down > 80 && down > 2 * across) setVisualOpen(false);
-  });
-  $("#visual").addEventListener("pointercancel", () => {
-    swipe = null;
-  });
+  phoneLayout.addEventListener("change", () => visualOpen() && wake());
+  // on a phone the small bar's song opens the full-screen view too, as a phone's music app does
+  $(".now-text").addEventListener("click", () => phoneLayout.matches && setVisualOpen(true));
   document.addEventListener("fullscreenchange", () => {
     if (!document.fullscreenElement) setVisualOpen(false); // Esc, or the browser's own exit
   });
@@ -1117,15 +1209,29 @@ function wireControls() {
   $("#focus-favorite").addEventListener("click", () => toggleFavorite(focusId));
   $("#now-favorite").addEventListener("click", () => toggleFavorite(player.current.id));
 
-  $("#copy-link").addEventListener("click", async () => {
-    const track = player.current;
-    const url = `${location.origin}${location.pathname}#song-${track.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast("Link copied");
-    } catch {
-      toast(url);
-    }
+  $("#copy-link").addEventListener("click", () => copyLink(player.current));
+
+  // a song's menu closes when something else is pressed (that press doing nothing else, as on a
+  // phone), the page scrolls, or Esc (onKey); the arrow keys move through it
+  let closingPress = false;
+  document.addEventListener("pointerdown", (event) => {
+    closingPress = Boolean(menuFor) && !event.target.closest?.("#song-menu, .track-more");
+    if (closingPress) closeMenu();
+  }, true);
+  document.addEventListener("click", (event) => {
+    if (!closingPress) return;
+    closingPress = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+  for (const name of ["scroll", "resize"]) window.addEventListener(name, () => closeMenu(), { passive: true });
+  $("#song-menu").addEventListener("keydown", (event) => {
+    const items = [...$$("#song-menu .menu-item")];
+    const at = items.indexOf(document.activeElement);
+    const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: items.length - 1 }[event.key];
+    if (to === undefined) return;
+    event.preventDefault();
+    items[(to + items.length) % items.length].focus();
   });
 
   $("#search").addEventListener("input", filterSongs);
@@ -1182,7 +1288,8 @@ function onKey(event) {
     // Enter switches a focused checkbox (Space plays and pauses), and starts on the landing page
     Enter: () => (target.type === "checkbox" ? target.click() : home && !onButton && (location.hash = "music")),
     Escape: () => {
-      if (panel) setPanel(null);
+      if (menuFor) closeMenu({ refocus: true });
+      else if (panel) setPanel(null);
       else if (visualOpen()) setVisualOpen(false);
       else if (document.body.dataset.view === "settings") location.hash = backTo;
       else return false;

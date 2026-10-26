@@ -177,20 +177,6 @@ body {
 }
 body[data-view="player"], body[data-view="settings"].has-track { padding-bottom: calc(var(--bar-h) + 24px); }
 body.visual-open { overflow: hidden; }
-/* As a Home Screen app the page runs on under the phone's clock and battery (index.html's
-   black-translucent status bar), which are always white: on the light side a soft shade behind them
-   keeps them readable. */
-@media (display-mode: standalone) {
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0 0 auto;
-    z-index: 70;
-    height: env(safe-area-inset-top);
-    pointer-events: none;
-    background: linear-gradient(light-dark(rgb(8 24 42 / 0.45), transparent), transparent);
-  }
-}
 
 /* the pages: the title screen, the music, and the settings (which share the music page's top bar) */
 body[data-view="home"] .player-page { display: none; }
@@ -592,7 +578,7 @@ body.has-track .landing-hero { padding-bottom: calc(var(--bar-h) + 1.5rem); }
   display: flex;
   align-items: center;
   gap: clamp(0.75rem, 3vw, 2.25rem);
-  height: calc(64px + env(safe-area-inset-top)); /* (as a Home Screen app, under the phone's clock too) */
+  height: calc(64px + env(safe-area-inset-top)); /* (where the page runs under a phone's clock, clear of it) */
   padding: env(safe-area-inset-top) clamp(0.75rem, 3vw, 2rem) 0;
   background: var(--header-bg);
   backdrop-filter: blur(16px);
@@ -776,6 +762,29 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 .heart[aria-pressed="true"] svg { fill: currentColor; }
 .track .heart { opacity: 0; }
 .track:hover .heart, .track:focus-within .heart, .track .heart[aria-pressed="true"] { opacity: 1; }
+.track-more { display: none; } /* (phones only) */
+
+/* a song's menu, from the "···" on its row (phones): a plain list like the dropdowns' */
+.song-menu {
+  position: fixed;
+  z-index: 61; /* over the player bar */
+  display: grid;
+  gap: 2px;
+  min-width: 13.5rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  box-shadow: 0 14px 36px var(--shadow);
+  animation: list-in 0.12s ease-out;
+}
+.menu-item { position: relative; isolation: isolate; display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 0.75rem; border: 0; background: none; color: var(--text); font: 600 0.92rem / 1.2 var(--display); text-align: left; }
+.menu-item::before { content: ""; position: absolute; inset: 0; z-index: -1; transform: skewX(var(--skew)); border-radius: var(--radius); }
+.menu-item:active::before, :root[data-input="keyboard"] .menu-item:focus-visible::before { background: var(--hover); }
+.menu-item svg { width: 18px; height: 18px; color: var(--muted); }
+@media (hover: hover) {
+  .menu-item:hover::before { background: var(--hover); }
+}
 
 /* star ratings (Settings > Your songs, off at first), like iTunes: a song's own stars, and while
    pointing at its row all five to choose from; pointing at one lights it and the ones before it */
@@ -1006,8 +1015,16 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
    The wave is glass like the buttons: an outline with only a faint tint inside. The line runs 60%
    of the way down, leaving the wave room above it: the slider (whose line is always in its middle)
    is taller than the bar and hangs below it. */
-.seek { position: relative; height: 38px; }
-.seek .slider { position: absolute; top: 0; left: 0; z-index: 1; height: 120%; }
+.seek { position: relative; height: 38px; touch-action: none; cursor: pointer; }
+.seek:has(.slider:disabled) { cursor: default; }
+/* app.js seeks from anywhere along the bar, pressed and dragged as in a phone's music app; the slider
+   draws the line and its handle, and is there for the keyboard and screen readers */
+.seek .slider { position: absolute; top: 0; left: 0; z-index: 1; height: 120%; pointer-events: none; }
+.seek::after { content: ""; position: absolute; inset: -8px 0; } /* a little more to press on */
+/* while it's held: the line in the accent, and its handle bigger */
+.seek.scrubbing .slider { --done: var(--accent); }
+.seek.scrubbing .slider::-webkit-slider-thumb { opacity: 1; transform: rotate(45deg) scale(1.4); }
+.seek.scrubbing .slider::-moz-range-thumb { opacity: 1; }
 .wave { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.5s, filter 0.25s; }
 .wave.ready { opacity: 1; }
 .wave svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -1052,7 +1069,7 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
 }
 .slider:focus-visible, .slider:active { --done: var(--accent); }
 @media (hover: hover) {
-  .slider:hover { --done: var(--accent); }
+  .slider:hover, .seek:hover .slider { --done: var(--accent); }
 }
 .slider:disabled { cursor: default; opacity: 0.5; }
 .slider::-webkit-slider-runnable-track {
@@ -1074,8 +1091,8 @@ kbd { padding: 0.05rem 0.4rem; border: 1px solid var(--line); border-radius: 3px
 .slider::-moz-range-track { height: 3px; background: var(--track); }
 .slider::-moz-range-progress { height: 3px; background: var(--done); }
 .slider::-moz-range-thumb { width: 11px; height: 11px; border: 0; border-radius: 2px; background: var(--text); opacity: 0; transform: rotate(45deg); }
-.slider:hover::-webkit-slider-thumb, .slider:focus-visible::-webkit-slider-thumb, .slider:active::-webkit-slider-thumb { opacity: 1; transform: rotate(45deg) scale(1); }
-.slider:hover::-moz-range-thumb, .slider:focus-visible::-moz-range-thumb, .slider:active::-moz-range-thumb { opacity: 1; }
+.slider:hover::-webkit-slider-thumb, .seek:hover .slider::-webkit-slider-thumb, .slider:focus-visible::-webkit-slider-thumb, .slider:active::-webkit-slider-thumb { opacity: 1; transform: rotate(45deg) scale(1); }
+.slider:hover::-moz-range-thumb, .seek:hover .slider::-moz-range-thumb, .slider:focus-visible::-moz-range-thumb, .slider:active::-moz-range-thumb { opacity: 1; }
 
 .extras { display: flex; align-items: center; justify-content: flex-end; gap: 0.3rem; }
 .volume { display: flex; align-items: center; gap: 0.25rem; width: 150px; }
@@ -1117,7 +1134,7 @@ body:not(.has-track) .live-eq { display: none; }
   padding: calc(7vh + env(safe-area-inset-top)) 4vw calc(var(--bar-h) + 7vh);
   background: #06040c;
   color-scheme: dark;
-  touch-action: none; /* a swipe down closes it on a touch screen (app.js); nothing here scrolls */
+  touch-action: none; /* nothing here scrolls, and dragging on it doesn't move the page underneath */
   /* the album's colors (app.js sets them on the backdrops and the frame) */
   --c-1: #7b67ff;
   --c-2: #1c1a4d;
@@ -1258,7 +1275,7 @@ body.controls-hidden .visual-frame { translate: 0 calc(var(--bar-h) / 2); }
 .visual-cover .cover-art span { font-size: clamp(1.6rem, 5vmin, 3.4rem); }
 /* in full screen the bar is dark glass over the backdrop, whatever the theme, and it slides away
    while the music plays and nothing moves, like a video player's controls (app.js: wake, rest) */
-body.visual-open .player-bar { color-scheme: dark; background: rgba(6, 4, 12, 0.5); border-top-color: rgba(255, 255, 255, 0.06); transition: transform 0.5s var(--ease-out), opacity 0.4s; }
+body.visual-open .player-bar { color-scheme: dark; background: rgba(6, 4, 12, 0.5); border-top-color: rgba(255, 255, 255, 0.06); touch-action: none; transition: transform 0.5s var(--ease-out), opacity 0.4s; }
 body.controls-hidden .player-bar { transform: translateY(100%); opacity: 0; pointer-events: none; }
 
 /* Once the full-screen view has faded in over everything, the page under it isn't drawn or kept up
@@ -1536,6 +1553,17 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 :root[data-graphics="off"] *, :root[data-graphics="off"] *::before, :root[data-graphics="off"] *::after { animation: none !important; }
 :root[data-graphics="off"] .effects, :root[data-graphics="off"] .scenes { display: none; }
 
+/* --- iPhones and iPads (index.html's first script marks them: data-ios) ------------------------- */
+
+/* As a Home Screen app the page runs up under the clock and battery (index.html), like the title
+   screen, and the top bar goes up behind them (its padding), solid in the page's color, which changes
+   with the theme and with light and dark (the user asked for it solid: its glass looked different up
+   there; in Safari, which colors the status bar from the top of the page, it's the same color). When
+   the page bounces at the top, the bar's part above the screen comes down with it, so the bar
+   stretches rather than coming away from the clock. */
+:root[data-ios] .topbar { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-ios] .topbar::before { content: ""; position: absolute; inset: auto 0 100%; height: 50vh; background: var(--bg); }
+
 /* --- smaller screens -------------------------------------------------------------------------- */
 
 @media (max-width: 1080px) {
@@ -1552,27 +1580,63 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 
 @media (max-width: 720px) {
   .moon { opacity: 0.6; } /* the song list runs right over it here */
-  .player-bar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "now extras" "transport transport";
-    row-gap: 0.35rem;
-    padding-top: 0.7rem;
-  }
-  .now { grid-area: now; }
-  .now-cover { width: 46px; height: 46px; }
-  .now-title { font-size: 0.95rem; }
-  .now-album { font-size: 0.8rem; }
-  body:not(.visual-open) #now-favorite { display: none; } /* no room: each song's heart shows beside it here */
-  .extras { grid-area: extras; }
-  .transport { grid-area: transport; }
-  .volume { display: none; }
   .side-panel { width: 100%; border-left: 0; }
-  .track { min-height: 48px; padding-right: 0.5rem; }
-  .track-streams, .track .rating { display: none; } /* no room beside the titles: the song in focus shows them */
-  .track-main { gap: 0.7rem; padding: 0.7rem 0.3rem; }
+  .shortcut-list { grid-template-columns: minmax(0, 1fr); }
+
+  /* Phones: laid out like a phone's music app (the user asked for Apple Music's, in the site's own
+     look, with room for the songs' titles). The music page's head: its title with the songs' order
+     beside it, the count, the search across, then Play all and Shuffle side by side. */
+  .music-head { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "title sort" "stats stats" "search search" "play shuffle"; align-items: center; gap: 0.85rem 0.75rem; }
+  .music-title, .tools-right { display: contents; }
+  .music-title .section-title { grid-area: title; }
+  .music-title .section-title::after { display: none; }
+  .music-stats { grid-area: stats; margin: -0.45rem 0 0.1rem; }
+  .dropdown.sort { grid-area: sort; justify-self: end; width: auto; max-width: 100%; }
+  .dropdown.sort .dropdown-list { left: auto; width: min(17rem, calc(100vw - 2rem)); }
+  .search { grid-area: search; width: auto; min-height: 42px; }
+  #play-all { grid-area: play; }
+  #shuffle-all { grid-area: shuffle; }
+  :is(#play-all, #shuffle-all) { min-height: 42px; }
+
+  /* the songs: a row is its number and its title (in one list of all the songs, its album under it),
+     a favorite's heart, and a "···" with the rest (app.js, openMenu) */
+  .track { min-height: 52px; padding-right: 0.2rem; }
+  .track-actions, .track-streams, .track .rating, .track-time { display: none; }
+  .track .heart:not([aria-pressed="true"]) { display: none; }
+  .track-more { display: grid; color: var(--faint); }
+  .track-main { gap: 0.75rem; padding: 0.75rem 0.3rem; }
+  .track-title { white-space: normal; }
+  .track-name { display: -webkit-box; overflow: hidden; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; } /* (a long title on two lines) */
+  .track-album { display: block; margin: 0.1rem 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.8rem; }
   .group-head { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 0.85rem; padding: 0 0.15rem 0.7rem 0.6rem; }
   .group-cover { width: 44px; }
-  .shortcut-list { grid-template-columns: minmax(0, 1fr); }
+
+  /* The player bar, like a phone's music app's: the song (pressed, it opens the full-screen view, as
+     its cover does), play and next beside it, and the seek bar across with the times under its ends.
+     The rest is in the full-screen view, and a song's link in its menu. */
+  .player-bar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "now play next" "progress progress progress";
+    gap: 0.25rem 0.15rem;
+    padding-top: 0.6rem;
+  }
+  /* (the buttons' groups step aside, so each button takes its own place in the bar's grid) */
+  .player-bar :is(.transport, .controls) { display: contents; }
+  body:not(.visual-open) :is(#shuffle, #prev, #repeat, #copy-link, #now-favorite, .extras) { display: none; }
+  .volume { display: none; }
+  .now { grid-area: now; }
+  .now-cover { width: 44px; height: 44px; }
+  .now-text { flex: 1; }
+  .now-title { font-size: 0.95rem; }
+  .now-album { font-size: 0.8rem; }
+  #play { grid-area: play; width: 48px; height: 48px; margin: 0; }
+  #play::before { inset: 8px; }
+  #next { grid-area: next; color: var(--text); }
+  .progress { grid-area: progress; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "seek seek" "current total"; gap: 0; max-width: none; }
+  .progress .seek { grid-area: seek; height: 30px; }
+  .progress .time { top: 0; min-width: 0; font-size: 0.68rem; }
+  #time-current { grid-area: current; text-align: left; }
+  #time-total { grid-area: total; text-align: right; }
 }
 
 /* --- full screen on phones ---------------------------------------------------------------------- */
@@ -1600,8 +1664,7 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  /* the buttons' groups step aside, so each button takes its own place in the bar's grid */
-  body.visual-open :is(.transport, .controls, .extras) { display: contents; }
+  body.visual-open .extras { display: contents; }
   body.visual-open :is(.now-cover, #copy-link) { display: none; }
   body.visual-open .now { gap: 0.5rem; }
   body.visual-open .now-text { flex: 1; }
@@ -1609,14 +1672,9 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   body.visual-open .now-album { font-size: 0.85rem; }
   body.visual-open #now-favorite { width: 44px; height: 44px; margin-right: -11px; } /* the heart's edge on the seek bar's end */
   body.visual-open #now-favorite svg { width: 22px; height: 22px; }
-  body.visual-open .progress { grid-area: progress; grid-template-columns: 1fr 1fr; grid-template-areas: "seek seek" "current total"; gap: 0; max-width: none; }
-  body.visual-open .progress .seek { grid-area: seek; }
-  body.visual-open .progress .time { top: 0; min-width: 0; font-size: 0.7rem; }
-  body.visual-open #time-current { grid-area: current; text-align: left; }
-  body.visual-open #time-total { grid-area: total; text-align: right; }
+  body.visual-open .progress .seek { height: 40px; }
+  body.visual-open .progress .time { font-size: 0.7rem; }
   body.visual-open #prev { grid-area: prev; }
-  body.visual-open #play { grid-area: play; }
-  body.visual-open #next { grid-area: next; }
   body.visual-open :is(#prev, #play, #next) { justify-self: center; }
   body.visual-open :is(#prev, #next) { width: 60px; height: 60px; color: var(--text); }
   body.visual-open :is(#prev, #next) svg { width: 30px; height: 30px; }

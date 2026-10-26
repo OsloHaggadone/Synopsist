@@ -271,7 +271,11 @@ function sceneLight(light) {
 
 // --- the effects -----------------------------------------------------------------------------------
 
-export function songEffects(player, { page, back, front }) {
+// bleed: how far the full-screen canvases reach above the screen, in CSS pixels (on iPhones and
+// iPads, where the full-screen view runs up behind the clock: style.css). onGlow(0 to 1, in tenths):
+// how much the song's light is up (its chorus, the swell into a drop and the pop on it), whenever
+// that changes.
+export function songEffects(player, { page, back, front, bleed = 0, onGlow = () => {} }) {
   const visual = back.closest(".visual");
   const scenes = visual.querySelector(".scenes");
   const vignette = visual.querySelector(".visual-vignette");
@@ -279,6 +283,9 @@ export function songEffects(player, { page, back, front }) {
   let shownScene = null; // the scene element showing (it gets --chorus and --swell)
   let varsAt = 0; // when the CSS variables were last set
   const view = { width: 0, height: 0, ratio: 1, scale: 1, density: 1 };
+  let lift = 0; // how far the canvas being drawn reaches above the screen (everything drawn that much lower)
+  let glowShown = 0; // what onGlow was last told
+  const above = () => (visual.classList.contains("open") ? bleed : 0); // where particles may be, above the screen
   let wanted = null; // the look for the song that's playing (null: it has none)
   let look = null; // the look on screen
   let sceneLook = null; // the look whose scene is in full screen
@@ -413,7 +420,7 @@ export function songEffects(player, { page, back, front }) {
     const spread = style.spread ?? 0;
     const p = {
       x: Math.random() * view.width,
-      y: Math.random() * view.height,
+      y: Math.random() * (view.height + above()) - above(),
       near,
       front: quality() === "high" && Math.random() < (style.front ?? FRONT),
       radius: between(style.size) * near,
@@ -564,8 +571,8 @@ export function songEffects(player, { page, back, front }) {
         // off one side, back in on the other
         if (p.x < -margin) p.x += view.width + 2 * margin;
         else if (p.x > view.width + margin) p.x -= view.width + 2 * margin;
-        if (p.y < -margin) p.y += view.height + 2 * margin;
-        else if (p.y > view.height + margin) p.y -= view.height + 2 * margin;
+        if (p.y < -above() - margin) p.y += view.height + above() + 2 * margin;
+        else if (p.y > view.height + margin) p.y -= view.height + above() + 2 * margin;
       }
       if (!p.burst && !p.leaving && p.age < p.life) count++;
     }
@@ -618,7 +625,7 @@ export function songEffects(player, { page, back, front }) {
       ctx.globalAlpha = Math.min(1, opacity * (0.55 + 0.45 * Math.sin(clock * ray.rate + ray.phase)));
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
-      ctx.setTransform(cos * k, sin * k, -sin * k, cos * k, x * k, y * k);
+      ctx.setTransform(cos * k, sin * k, -sin * k, cos * k, x * k, (y + lift) * k);
       ctx.drawImage(image, -width / 2, 0, width, length);
     });
   }
@@ -654,26 +661,27 @@ export function songEffects(player, { page, back, front }) {
         const length = size * (1 + (stretch * speed) / (p.front ? FRONT_SPEED : 1));
         const cos = p.vx / speed;
         const sin = p.vy / speed;
-        ctx.setTransform(cos * k, sin * k, -sin * k, cos * k, x * k, y * k);
+        ctx.setTransform(cos * k, sin * k, -sin * k, cos * k, x * k, (y + lift) * k);
         ctx.drawImage(image, -length / 2, -size * 0.3, length, size * 0.6);
       } else if (shape === "shard" || shape === "petal") {
         // turning; a petal also tumbles, so it narrows and widens
         const flip = shape === "petal" ? 0.3 + 0.7 * Math.abs(Math.cos(clock * p.wander * 1.5 + p.phase)) : 1;
         const cos = Math.cos(p.angle);
         const sin = Math.sin(p.angle);
-        ctx.setTransform(cos * k * flip, sin * k * flip, -sin * k, cos * k, x * k, y * k);
+        ctx.setTransform(cos * k * flip, sin * k * flip, -sin * k, cos * k, x * k, (y + lift) * k);
         ctx.drawImage(image, -size / 2, -size / 2, size, size);
       } else {
-        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.setTransform(k, 0, 0, k, 0, lift * k);
         ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
       }
     }
   }
 
-  // A canvas sized to the window and cleared, ready to draw on.
-  function prepare(canvas, light) {
+  // A canvas sized to the window (and `top` above it) and cleared, ready to draw on.
+  function prepare(canvas, light, top = 0) {
+    lift = top;
     const width = Math.round(view.width * view.ratio);
-    const height = Math.round(view.height * view.ratio);
+    const height = Math.round((view.height + top) * view.ratio);
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
@@ -690,8 +698,8 @@ export function songEffects(player, { page, back, front }) {
     for (const canvas of full ? [page] : [back, front]) if (canvas.width) release(canvas);
     const shown = level * (1 - dark); // a break before a drop takes the light away
     if (full) {
-      drawParticles(prepare(back, false), shown, false, "back");
-      const ctx = prepare(front, false);
+      drawParticles(prepare(back, false, bleed), shown, false, "back");
+      const ctx = prepare(front, false, bleed);
       drawRays(ctx, shown, false, sceneShift(performance.now()));
       drawParticles(ctx, shown, false, "front");
     } else {
@@ -709,6 +717,14 @@ export function songEffects(player, { page, back, front }) {
     setVar("--swell", (swell + pop) * level);
     setVar("--dark", dark * level);
     setVar("--vignette", clamp(VIGNETTE + level * (0.18 - 0.6 * chorus - 0.15 * (swell + pop) + 0.4 * dark), 0.15, 1));
+    showGlow(level * (chorus + 0.5 * (swell + pop)) * (1 - dark));
+  }
+
+  function showGlow(value) {
+    const tenths = Math.round(clamp(value, 0, 1) * 10) / 10;
+    if (tenths === glowShown) return;
+    glowShown = tenths;
+    onGlow(tenths);
   }
 
   // an empty canvas holds no memory
@@ -747,6 +763,7 @@ export function songEffects(player, { page, back, front }) {
       frame = 0;
       for (const canvas of [page, back, front]) release(canvas);
       for (const name of ["--chorus", "--swell", "--dark", "--vignette"]) setVar(name, null);
+      showGlow(0);
       barAway = null; // where the scene is gets looked at afresh next time
     }
   }

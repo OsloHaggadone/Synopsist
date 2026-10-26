@@ -1555,17 +1555,55 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 
 /* --- iPhones and iPads (index.html's first script marks them: data-ios) ------------------------- */
 
-/* iOS paints the status bar (the clock and battery) itself, above the page, in the color at the top
-   of the page and with text dark or light to suit it; app.js keeps theme-color to the page's color,
-   or the full-screen view's. (A page running up under it, black-translucent, gets a dark blur over
-   its top from iOS 26.1 on, which no page can turn off: on the light side it cut the top bar off.)
-   So here the top bar is solid in the page's color, the clock sitting on one band with it in every
-   theme, light or dark, and it's fixed: when the page bounces it stays under the clock, the page
-   moving beneath it (the user wanted the bounce, not the bar coming away). The full-screen view fades
-   up into the status bar's color. */
-:root[data-ios] .topbar { position: fixed; inset: 0 0 auto; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* As a Home Screen app the page runs up under the clock and battery (index.html), and iOS blurs and
+   darkens what's behind them, as in Spotify and Apple Music (the user asked for that look): the
+   full-screen art, the title screen as it scrolls, and the top bar's glass, which goes up behind
+   them (its padding). But wherever something pinned spans the top of the screen, iOS paints a solid
+   box there in its color instead (WebKit looks 4px below the middle of the top edge, for a fixed
+   element; a full-screen one, like the full-screen view, keeps the color there was): the user saw a
+   white or dark box on the music page, the settings, and in full screen, and the blur only on the
+   title screen, which has nothing pinned there. So the band is pinned over everything at the top,
+   empty and clear and taking taps: WebKit finds it, skips it (nothing to take a color from), and
+   looks no further, the pinned top bar and full-screen view under it never read. */
+.status-band { display: none; }
+:root[data-ios] .status-band { display: block; position: fixed; inset: 0 0 auto; z-index: 2147483647; height: 12px; }
+/* The top bar is fixed: when the page bounces it stays under the clock, the page moving beneath it
+   (the user wanted the bounce, not the bar coming away from the clock). */
+:root[data-ios] .topbar { position: fixed; inset: 0 0 auto; }
 :root[data-ios] .player-page { padding-top: calc(64px + env(safe-area-inset-top)); }
-:root[data-ios] .visual::after { content: ""; position: absolute; inset: 0 0 auto; z-index: -1; height: 2.5rem; background: linear-gradient(rgb(6 4 12), transparent); pointer-events: none; } /* (the view's own background) */
+/* Full screen: iOS draws only the page behind the clock, what's scrolled up under it, never what's
+   pinned (pinned, the view had the hidden page's background there, a cream bar on the light side,
+   which the user sent a screenshot of). So the open view is laid into the page (app.js,
+   inlineVisual), where the screen is, and reaches 120px above it, its art running up behind the
+   clock under iOS's fade: its glows and a song's scene lights carry on past the top of the screen
+   (their boxes reach up, each light still where it was), over a dark base, darkened as the view's
+   edges are. The page under it stays scrollable, as on the other pages, though nothing scrolls it:
+   the view and the bar take no swipes, and a panel's list doesn't pass its scrolling on. */
+:root[data-ios] body.visual-open { overflow: visible; }
+:root[data-ios] body.visual-inline { padding-top: 120px; }
+:root[data-ios] body.visual-inline .visual { position: absolute; inset: auto 0; height: 100%; }
+:root[data-ios] .side-body { overscroll-behavior: contain; }
+:root[data-ios] .visual :is(.backdrops, .scenes) { top: -120px; overflow: hidden; }
+:root[data-ios] .visual :is(.backdrop, .scene) { top: 120px; }
+:root[data-ios] .visual .backdrop { overflow: visible; }
+:root[data-ios] .visual::before { content: ""; position: absolute; inset: auto 0 100%; z-index: -2; height: 120px; background: rgb(6 4 12); pointer-events: none; } /* (the view's own background) */
+/* the vignette reaches up there too, darkening it as it darkens the view's top edge (most at the
+   corners), and lifting with it in a chorus (js/effects.js sets --vignette): a fixed shade stayed
+   dark over the brightened art (the user saw it in Facades' chorus) */
+:root[data-ios] .visual-vignette {
+  top: -120px;
+  background:
+    linear-gradient(to right, rgb(2 1 6 / 0.8), rgb(2 1 6 / 0.46) 25%, rgb(2 1 6 / 0.33) 50%, rgb(2 1 6 / 0.46) 75%, rgb(2 1 6 / 0.8)) top / 100% 120px no-repeat,
+    radial-gradient(ellipse at center, transparent 50%, rgb(2 1 6 / 0.8) 100%) bottom / 100% calc(100% - 120px) no-repeat;
+}
+/* the particles and rays too (js/effects.js draws them that much lower), so a ray falling in from
+   above, like Facades' shaft, isn't cut off at the top of the screen (the user's screenshot) */
+:root[data-ios] .visual .effects { top: -120px; height: calc(100% + 120px); }
+/* iOS lays a haze over what's behind the clock, in the page's background color: white on the light
+   side, black on the dark one, a bar over the art either way (the user's screenshots). In full screen
+   the page takes its dark side, and the body the album's color, deepened (app.js, showClockTint), so
+   the haze is the art's own color, as on the list it's the page's. */
+:root[data-ios]:has(body.visual-open) { color-scheme: dark; }
 
 /* --- smaller screens -------------------------------------------------------------------------- */
 
@@ -1585,6 +1623,14 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   .moon { opacity: 0.6; } /* the song list runs right over it here */
   .side-panel { width: 100%; border-left: 0; }
   .shortcut-list { grid-template-columns: minmax(0, 1fr); }
+
+  /* iPhones: no bar along the top, as in Apple Music and Spotify (the user asked): the logo and the
+     gear float as buttons of their own, over the page, which scrolls up behind them and the clock */
+  :root[data-ios] .topbar { background: none; border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; pointer-events: none; }
+  :root[data-ios] .topbar > * { pointer-events: auto; }
+  :root[data-ios] .topbar .diamond-button::before { background-color: var(--header-bg); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  :root[data-ios] .player-page { padding-top: calc(52px + env(safe-area-inset-top)); }
+  :root[data-ios] .music { padding-top: 0.75rem; }
 
   /* Phones: laid out like a phone's music app (the user asked for Apple Music's, in the site's own
      look, with room for the songs' titles). The music page's head: its title with the songs' order
@@ -1613,6 +1659,19 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   .track-album { display: block; margin: 0.1rem 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.8rem; }
   .group-head { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 0.85rem; padding: 0 0.15rem 0.7rem 0.6rem; }
   .group-cover { width: 44px; }
+  /* iPhones: the list denser, its text smaller, as in Apple Music, for more songs at once; and the
+     small player bar without its seek bar, which is in the full-screen view (the user asked) */
+  :root[data-ios] .track { min-height: 44px; }
+  :root[data-ios] .track-main { gap: 0.65rem; padding: 0.5rem 0.3rem; }
+  :root[data-ios] .track-no { width: 1.5rem; font-size: 0.78rem; }
+  :root[data-ios] .track-name { font-size: 0.92rem; }
+  :root[data-ios] .track-album { font-size: 0.74rem; }
+  :root[data-ios] .group { margin-bottom: 1.6rem; }
+  :root[data-ios] .group-head { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 0.75rem; padding-bottom: 0.55rem; }
+  :root[data-ios] .group-cover { width: 40px; }
+  :root[data-ios] .group-title { font-size: 0.98rem; }
+  :root[data-ios] .group-meta { font-size: 0.74rem; }
+  :root[data-ios] body:not(.visual-open) .progress { display: none; }
 
   /* The player bar (a blend of the old one and Apple Music's, as the user asked): the song across the
      top, the whole title (pressed, it opens the full-screen view, as the cover does) with its heart,

@@ -6,6 +6,9 @@
   <title>Oslo Haggadone</title>
   <meta name="description" content="Stream every song by Oslo Haggadone for free.">
   <meta name="theme-color" content="#050b15">
+  <!-- added to an iPhone's Home Screen, the app runs up under the clock and battery, which iOS blurs
+       and darkens, as in Spotify and Apple Music (the user asked; style.css, iPhones and iPads) -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Oslo Haggadone">
   <meta property="og:description" content="Stream every song by Oslo Haggadone for free.">
@@ -37,6 +40,9 @@
      the music page at "/#music" (or any other link into it, like "/#song-space-rain"), and the
      settings at "/#settings". -->
 <body data-view="home">
+  <!-- what an iPhone looks at, at the top of the screen, and finds nothing to color its status bar
+       with, so it blurs whatever's behind it (style.css, iPhones and iPads); never seen -->
+  <div class="status-band" aria-hidden="true"></div>
   <svg class="icons" aria-hidden="true">
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
@@ -290,7 +296,24 @@
             <p class="settings-note" id="live-eq-note" hidden>Hidden while Graphics is Off.</p>
           </div>
         </div>
-        <p class="settings-note" id="ios-sound-note" hidden>On iPhone and iPad, the music may stop when the screen locks while the EQ or the live EQ is on.</p>
+        <div class="setting">
+          <h3 id="enhance-title">Enhance audio</h3>
+          <div>
+            <label class="toggle">
+              <input type="checkbox" id="enhance-setting" aria-labelledby="enhance-title enhance-text">
+              <span id="enhance-text">Even out how loud the songs are</span>
+            </label>
+            <p class="settings-note">Off, each song plays as loud as it was mastered.</p>
+          </div>
+        </div>
+        <div class="setting">
+          <h3 id="fade-title">Fades</h3>
+          <label class="toggle">
+            <input type="checkbox" id="fade-setting" aria-labelledby="fade-title fade-text">
+            <span id="fade-text">Fade one song into the next</span>
+          </label>
+        </div>
+        <p class="settings-note" id="ios-sound-note" hidden>On iPhone and iPad, the music may stop when the screen locks while the EQ, the live EQ, or fades are on, or Enhance audio is off.</p>
       </section>
 
       <section class="settings-group" aria-labelledby="songs-title">

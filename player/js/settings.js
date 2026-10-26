@@ -4,8 +4,10 @@
 // (graphics): High (everything), Low (lighter, for slower devices), or Off (no moving backgrounds or
 // song effects). index.html's first script applies them before the page is drawn, as data-palette,
 // data-theme, and data-graphics on <html>; this module changes them and tells the rest of the site.
-// A device that asks for less motion always gets Off. And the sound: an EQ preset (js/eq.js), and
-// whether the live EQ shows along the bottom of the screen (js/liveeq.js). Whether songs can be
+// A device that asks for less motion always gets Off. And the sound: an EQ preset (js/eq.js),
+// whether the live EQ shows along the bottom of the screen (js/liveeq.js), whether the songs play
+// evened out in loudness (Enhance audio, on unless turned off) or as mastered, and whether one song
+// fades into the next (off unless turned on; both in js/eq.js). Whether songs can be
 // rated out of five stars (off unless turned on; the ratings themselves are in js/marks.js). And
 // how the music page orders the songs, and which albums it shows folded.
 
@@ -14,6 +16,8 @@ const THEME_KEY = "synopsist.theme";
 const GRAPHICS_KEY = "synopsist.graphics";
 const EQ_KEY = "synopsist.eq";
 const LIVE_EQ_KEY = "synopsist.liveEq";
+const ENHANCE_KEY = "synopsist.enhance"; // "0" once turned off (it's on unless it is)
+const FADE_KEY = "synopsist.fade";
 const SORT_KEY = "synopsist.sort";
 const RATINGS_KEY = "synopsist.showRatings";
 const COLLAPSED_KEY = "synopsist.collapsed";
@@ -50,6 +54,8 @@ function changed(what) {
 
 let eq = EQS.includes(recall(EQ_KEY)) ? recall(EQ_KEY) : EQS[0];
 let liveEq = recall(LIVE_EQ_KEY) === "1";
+let enhance = recall(ENHANCE_KEY) !== "0";
+let fade = recall(FADE_KEY) === "1";
 let sort = SORTS.includes(recall(SORT_KEY)) ? recall(SORT_KEY) : SORTS[0];
 let showRatings = recall(RATINGS_KEY) === "1";
 let collapsed;
@@ -65,6 +71,8 @@ export const themeSetting = () => (root.dataset.theme === "light" || root.datase
 export const graphicsSetting = () => (GRAPHICS.includes(root.dataset.graphics) ? root.dataset.graphics : "high");
 export const eqSetting = () => eq;
 export const liveEqSetting = () => liveEq;
+export const enhanceSetting = () => enhance; // every song about as loud as the others (js/eq.js)
+export const fadeSetting = () => fade; // one song fading into the next (js/eq.js)
 export const sortSetting = () => sort;
 export const ratingsSetting = () => showRatings;
 export const isCollapsed = (album) => collapsed.has(album);
@@ -106,6 +114,18 @@ export function setLiveEq(on) {
   changed("liveEq");
 }
 
+export function setEnhance(on) {
+  enhance = on;
+  remember(ENHANCE_KEY, on ? null : "0");
+  changed("enhance");
+}
+
+export function setFade(on) {
+  fade = on;
+  remember(FADE_KEY, on ? "1" : null);
+  changed("fade");
+}
+
 export function setSort(order) {
   sort = SORTS.includes(order) ? order : SORTS[0];
   remember(SORT_KEY, sort === SORTS[0] ? null : sort);
@@ -126,7 +146,7 @@ export function setCollapsed(album, folded) {
   remember(COLLAPSED_KEY, collapsed.size ? JSON.stringify([...collapsed]) : null);
 }
 
-// fn("palette" | "theme" | "graphics" | "eq" | "liveEq" | "ratings" | "sort"), whenever one changes
+// fn("palette" | "theme" | "graphics" | "eq" | "liveEq" | "enhance" | "fade" | "ratings" | "sort"), whenever one changes
 // (graphics too when the device's motion setting does)
 export function onSettingsChange(fn) {
   listeners.add(fn);

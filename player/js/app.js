@@ -21,9 +21,9 @@ import { isFavorite, onMarksChange, rate, ratingOf, toggleFavorite } from "./mar
 import { loadNotes } from "./notes.js";
 import { Player } from "./player.js";
 import {
-  eqSetting, graphics, graphicsSetting, isCollapsed, liveEqSetting, motionReduced, onSettingsChange, paletteSetting,
-  ratingsSetting, setCollapsed, setEq, setGraphics, setLiveEq, setPalette, setRatings, setSort, setTheme, sortSetting,
-  themeSetting,
+  enhanceSetting, eqSetting, fadeSetting, graphics, graphicsSetting, isCollapsed, liveEqSetting, motionReduced,
+  onSettingsChange, paletteSetting, ratingsSetting, setCollapsed, setEnhance, setEq, setFade, setGraphics, setLiveEq,
+  setPalette, setRatings, setSort, setTheme, sortSetting, themeSetting,
 } from "./settings.js";
 import { followTheMusic } from "./vibe.js";
 import { wavePaths } from "./wave.js";
@@ -47,6 +47,7 @@ let panel = null; // the side panel that's open: "queue", "details", or null
 let detailsId = null; // the song in the details panel
 let detailsFollow = false; // whether the details panel follows the song that's playing
 let wasPlaying = false;
+let flowing = false; // a song has just ended by itself, and the next one is coming on
 
 // --- small helpers ---------------------------------------------------------------------------
 
@@ -94,8 +95,8 @@ function currentTheme() {
   return document.documentElement.dataset.theme || (prefersLight.matches ? "light" : "dark");
 }
 
-// The browser's own bars on phones, and an iPhone's status bar, take the color at the top of the page:
-// the page's own, or the full-screen view's.
+// The browser's own bars on phones take the color at the top of the page: the page's own, or the
+// full-screen view's.
 function showTheme() {
   $('meta[name="theme-color"]').content = getComputedStyle(visualOpen() ? $("#visual") : document.body).backgroundColor;
 }
@@ -111,13 +112,6 @@ function crossFade(change) {
   document.startViewTransition(change).finished.finally(() => root.classList.remove("cross-fading"));
 }
 
-// New colors cross-fade in, except on iPhones and iPads: their status bar takes its color from the top
-// of the page, and the colors changing under a cross-fade can leave it the old one.
-function fadeColors(change) {
-  if (IOS) change();
-  else crossFade(change);
-}
-
 // Light, dark, or Auto (following the device).
 function chooseTheme(mode) {
   if (mode === themeSetting()) return;
@@ -127,13 +121,13 @@ function chooseTheme(mode) {
     showTheme();
   };
   if (after === currentTheme()) apply(); // the colors stay as they are
-  else fadeColors(apply);
+  else crossFade(apply);
 }
 
 // One of the album themes.
 function choosePalette(palette) {
   if (palette === paletteSetting()) return;
-  fadeColors(() => {
+  crossFade(() => {
     setPalette(palette);
     showTheme();
   });
@@ -150,6 +144,8 @@ function showSettings() {
   choices.graphics.show(graphicsSetting());
   choices.eq.show(eqSetting());
   $("#live-eq-setting").checked = liveEqSetting();
+  $("#enhance-setting").checked = enhanceSetting();
+  $("#fade-setting").checked = fadeSetting();
   $("#ratings-setting").checked = ratingsSetting();
   $("#motion-note").hidden = !motionReduced(); // the device asks for less motion: Off, whatever is chosen
   $("#live-eq-note").hidden = !liveEqSetting() || graphics() !== "off";
@@ -206,6 +202,8 @@ function wireSettings() {
   choices.graphics = dropdown($("#graphics-choice"), setGraphics);
   choices.eq = dropdown($("#eq-choice"), setEq);
   $("#live-eq-setting").addEventListener("change", (event) => setLiveEq(event.target.checked));
+  $("#enhance-setting").addEventListener("change", (event) => setEnhance(event.target.checked));
+  $("#fade-setting").addEventListener("change", (event) => setFade(event.target.checked));
   $("#ratings-setting").addEventListener("change", (event) => setRatings(event.target.checked));
   $("#graphics-advice-use").addEventListener("click", () => setGraphics(recommendation()));
   $("#ios-sound-note").hidden = !IOS;
@@ -723,7 +721,7 @@ function showWave() {
   });
 }
 
-function showState() {
+function showState(detail) {
   const playing = player.playing;
   const track = player.current;
   document.body.classList.toggle("is-playing", playing);
@@ -738,9 +736,19 @@ function showState() {
   $("#play").setAttribute("aria-label", playing ? "Pause" : "Play");
   document.title = playing && track ? `${track.title} · ${SITE.artist}` : SITE.artist;
   showFocusState();
-  // in full screen, pressing play or pause shows the controls (they stay while paused)
+  // In full screen, pressing play or pause shows the controls (they stay while paused). Not one song
+  // ending and the next coming on by itself, which pauses and plays too: hidden, they stay hidden, the
+  // view left as a background to the music (the user asked); if nothing follows, they come back.
   if (playing !== wasPlaying) {
     wasPlaying = playing;
+    if (!playing && player.audio.ended) flowing = true;
+    else if (playing && flowing) flowing = false;
+    else {
+      flowing = false;
+      if (visualOpen()) wake();
+    }
+  } else if (detail === "state" && flowing && !playing && !player.audio.ended) {
+    flowing = false; // the end of the queue: it stopped (a new song coming on is a "track" change)
     if (visualOpen()) wake();
   }
 }
@@ -901,6 +909,7 @@ function showVisual(force) {
   visual.dataset.track = player.current.id;
   showPalette(album, !force);
   showCover(album, force);
+  showClockTint();
 }
 
 // The album's colors are on two copies of the backdrop and of the glow behind the cover (style.css,
@@ -1033,6 +1042,38 @@ function rest() {
   document.body.classList.add("controls-hidden");
 }
 
+// On iPhones and iPads the open view is laid into the page, where the screen is (style.css,
+// .visual-inline): iOS draws only what's scrolled up behind its clock, never what's pinned, and the
+// view reaches up there. The page makes room above (the view's part over the screen) and is scrolled
+// down as far, so nothing on the screen moves, opening or closing.
+const BLEED = 120; // px, style.css
+function inlineVisual(on) {
+  if (!IOS || on === document.body.classList.contains("visual-inline")) return;
+  const root = document.documentElement;
+  root.style.scrollBehavior = "auto"; // (style.css makes scrolling smooth; this has to be at once)
+  document.body.classList.toggle("visual-inline", on);
+  scrollTo(0, scrollY + (on ? BLEED : -BLEED));
+  root.style.scrollBehavior = "";
+  if (on) anchorVisual();
+  else $("#visual").style.top = "";
+}
+
+function anchorVisual() {
+  if (document.body.classList.contains("visual-inline")) $("#visual").style.top = `${scrollY}px`;
+}
+
+// iOS's haze over what's behind its clock takes the page's background color (style.css): while the
+// view is open, the album's color, deepened as the view's top is, so the haze matches the art, and
+// brighter as a song's light comes up in its chorus (glow, from js/effects.js), or the haze would
+// stay dark over it (the user saw it in Facades' chorus).
+let clockGlow = 0;
+function showClockTint() {
+  if (!IOS) return;
+  const album = visualOpen() && player.current && albums.get(player.current.album);
+  const share = Math.round(30 + 25 * clockGlow);
+  document.body.style.backgroundColor = album ? `color-mix(in srgb, ${album.colors[0]} ${share}%, rgb(6 4 12))` : "";
+}
+
 // The bar's height (it wraps on phones, and in full screen there it holds the whole player) keeps
 // the pages, queue, messages, and the full-screen cover clear of it. It's kept while the view fades
 // out, or the cover would jump as the bar goes back to its small self.
@@ -1057,6 +1098,8 @@ function setVisualOpen(open) {
     measureBar();
   }, 450); // style.css: .visual's fade
   frames?.check();
+  inlineVisual(open);
+  showClockTint();
   if (open) {
     showVisual(true);
     preloadNext();
@@ -1193,6 +1236,8 @@ function wireControls() {
     });
   }
   phoneLayout.addEventListener("change", () => visualOpen() && wake());
+  // the view laid into the page stays where the screen is, whatever scrolls it (style.css, .visual-inline)
+  for (const name of ["scroll", "resize"]) addEventListener(name, anchorVisual, { passive: true });
   // on a phone the small bar's song opens the full-screen view too, as a phone's music app does
   $(".now-text").addEventListener("click", () => phoneLayout.matches && setVisualOpen(true));
   document.addEventListener("fullscreenchange", () => {
@@ -1257,7 +1302,7 @@ function wireControls() {
     if (detail === "volume") showVolume();
     if (detail === "error" && player.failed) toast(`Couldn't load “${player.failed.title}”. Check your connection and try again.`);
     if (["track", "time"].includes(detail)) showTime();
-    if (["track", "state", "error"].includes(detail)) showState();
+    if (["track", "state", "error"].includes(detail)) showState(detail);
     if (["track", "queue", "mode"].includes(detail)) {
       showModes();
       if (panel === "queue") showQueue();
@@ -1348,7 +1393,13 @@ async function main() {
     [$(".scenery .sky"), pageShown],
     ...["#visual .backdrops", "#visual .visual-frame", "#visual .scenes"].map((selector) => [$(selector), visualOpen]),
   ]);
-  songEffects(player, { page: $("#page-effects"), back: $("#visual-effects"), front: $("#visual-front") });
+  songEffects(player, {
+    page: $("#page-effects"), back: $("#visual-effects"), front: $("#visual-front"), bleed: IOS ? BLEED : 0,
+    onGlow: (glow) => {
+      clockGlow = glow;
+      if (visualOpen()) showClockTint();
+    },
+  });
   frames = countFrames(player, visualOpen);
   const eq = equalize(player); // before the live EQ, which reads it
   liveEq($("#live-eq"), player, eq, visualOpen);

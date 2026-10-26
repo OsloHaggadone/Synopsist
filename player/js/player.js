@@ -39,6 +39,7 @@ export class Player extends EventTarget {
     this.repeat = "off"; // off | all | one
     this.failed = null; // the song that couldn't be loaded, if any
     this._started = false; // whether the current song has played at all
+    this.continuing = false; // whether the current song came on by itself, the one before it ended
     this._timer = null;
     this._restorePrefs();
     this._listen();
@@ -73,6 +74,7 @@ export class Player extends EventTarget {
   // Play a list of songs (an album, or everything), starting from one of them. With autoplay
   // false the song is only loaded, ready for the listener to press play.
   playList(ids, { start = null, label = "", autoplay = true } = {}) {
+    this.continuing = false;
     this._leave();
     const queued = this.upcoming.filter((e) => e.added); // the listener's own queue carries over
     this.contextIds = ids.slice();
@@ -117,6 +119,7 @@ export class Player extends EventTarget {
   jump(key) {
     const at = this.items.findIndex((e) => e.key === key);
     if (at <= this.index) return;
+    this.continuing = false;
     this._leave();
     const [chosen] = this.items.splice(at, 1);
     this.items.splice(this.index + 1, 0, chosen);
@@ -142,12 +145,14 @@ export class Player extends EventTarget {
 
   next() {
     if (!this.current) return;
+    this.continuing = false;
     this._leave();
     this._advance();
   }
 
   previous() {
     if (!this.current) return;
+    this.continuing = false;
     if (this.time > RESTART_AFTER_S || this.index === 0) {
       this.seek(0);
       if (!this.playing) this.play();
@@ -284,6 +289,7 @@ export class Player extends EventTarget {
     audio.addEventListener("ended", () => {
       logEvent(this.current.id, "ended", { position_s: this.duration });
       this._started = false;
+      this.continuing = true;
       if (this.repeat === "one") {
         audio.currentTime = 0;
         this.play();

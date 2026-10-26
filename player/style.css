@@ -1555,14 +1555,17 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 
 /* --- iPhones and iPads (index.html's first script marks them: data-ios) ------------------------- */
 
-/* As a Home Screen app the page runs up under the clock and battery (index.html), like the title
-   screen, and the top bar goes up behind them (its padding), solid in the page's color, which changes
-   with the theme and with light and dark (the user asked for it solid: its glass looked different up
-   there; in Safari, which colors the status bar from the top of the page, it's the same color). When
-   the page bounces at the top, the bar's part above the screen comes down with it, so the bar
-   stretches rather than coming away from the clock. */
-:root[data-ios] .topbar { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
-:root[data-ios] .topbar::before { content: ""; position: absolute; inset: auto 0 100%; height: 50vh; background: var(--bg); }
+/* iOS paints the status bar (the clock and battery) itself, above the page, in the color at the top
+   of the page and with text dark or light to suit it; app.js keeps theme-color to the page's color,
+   or the full-screen view's. (A page running up under it, black-translucent, gets a dark blur over
+   its top from iOS 26.1 on, which no page can turn off: on the light side it cut the top bar off.)
+   So here the top bar is solid in the page's color, the clock sitting on one band with it in every
+   theme, light or dark, and it's fixed: when the page bounces it stays under the clock, the page
+   moving beneath it (the user wanted the bounce, not the bar coming away). The full-screen view fades
+   up into the status bar's color. */
+:root[data-ios] .topbar { position: fixed; inset: 0 0 auto; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-ios] .player-page { padding-top: calc(64px + env(safe-area-inset-top)); }
+:root[data-ios] .visual::after { content: ""; position: absolute; inset: 0 0 auto; z-index: -1; height: 2.5rem; background: linear-gradient(rgb(6 4 12), transparent); pointer-events: none; } /* (the view's own background) */
 
 /* --- smaller screens -------------------------------------------------------------------------- */
 
@@ -1611,32 +1614,21 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   .group-head { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 0.85rem; padding: 0 0.15rem 0.7rem 0.6rem; }
   .group-cover { width: 44px; }
 
-  /* The player bar, like a phone's music app's: the song (pressed, it opens the full-screen view, as
-     its cover does), play and next beside it, and the seek bar across with the times under its ends.
-     The rest is in the full-screen view, and a song's link in its menu. */
-  .player-bar {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas: "now play next" "progress progress progress";
-    gap: 0.25rem 0.15rem;
-    padding-top: 0.6rem;
-  }
-  /* (the buttons' groups step aside, so each button takes its own place in the bar's grid) */
-  .player-bar :is(.transport, .controls) { display: contents; }
-  body:not(.visual-open) :is(#shuffle, #prev, #repeat, #copy-link, #now-favorite, .extras) { display: none; }
+  /* The player bar (a blend of the old one and Apple Music's, as the user asked): the song across the
+     top, the whole title (pressed, it opens the full-screen view, as the cover does) with its heart,
+     then the buttons as they were, and the seek bar with the times at its ends. Details, the queue,
+     and full screen are in the full-screen view, and a song's link in its menu. */
+  .player-bar { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "transport"; row-gap: 0.3rem; padding-top: 0.65rem; }
+  body:not(.visual-open) :is(#copy-link, .extras) { display: none; }
   .volume { display: none; }
-  .now { grid-area: now; }
+  .now { grid-area: now; gap: 0.8rem; }
   .now-cover { width: 44px; height: 44px; }
   .now-text { flex: 1; }
   .now-title { font-size: 0.95rem; }
   .now-album { font-size: 0.8rem; }
-  #play { grid-area: play; width: 48px; height: 48px; margin: 0; }
-  #play::before { inset: 8px; }
-  #next { grid-area: next; color: var(--text); }
-  .progress { grid-area: progress; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "seek seek" "current total"; gap: 0; max-width: none; }
-  .progress .seek { grid-area: seek; height: 30px; }
-  .progress .time { top: 0; min-width: 0; font-size: 0.68rem; }
-  #time-current { grid-area: current; text-align: left; }
-  #time-total { grid-area: total; text-align: right; }
+  .transport { grid-area: transport; }
+  .controls { gap: 0.9rem; }
+  .progress .seek { height: 32px; }
 }
 
 /* --- full screen on phones ---------------------------------------------------------------------- */
@@ -1664,17 +1656,22 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  body.visual-open .extras { display: contents; }
+  /* the buttons' groups step aside, so each button takes its own place in the bar's grid */
+  body.visual-open :is(.transport, .controls, .extras) { display: contents; }
   body.visual-open :is(.now-cover, #copy-link) { display: none; }
   body.visual-open .now { gap: 0.5rem; }
-  body.visual-open .now-text { flex: 1; }
   body.visual-open .now-title { font-size: 1.05rem; }
   body.visual-open .now-album { font-size: 0.85rem; }
   body.visual-open #now-favorite { width: 44px; height: 44px; margin-right: -11px; } /* the heart's edge on the seek bar's end */
   body.visual-open #now-favorite svg { width: 22px; height: 22px; }
-  body.visual-open .progress .seek { height: 40px; }
-  body.visual-open .progress .time { font-size: 0.7rem; }
+  body.visual-open .progress { grid-area: progress; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "seek seek" "current total"; gap: 0; max-width: none; }
+  body.visual-open .progress .seek { grid-area: seek; height: 40px; }
+  body.visual-open .progress .time { top: 0; min-width: 0; font-size: 0.7rem; }
+  body.visual-open #time-current { grid-area: current; text-align: left; }
+  body.visual-open #time-total { grid-area: total; text-align: right; }
   body.visual-open #prev { grid-area: prev; }
+  body.visual-open #play { grid-area: play; }
+  body.visual-open #next { grid-area: next; }
   body.visual-open :is(#prev, #play, #next) { justify-self: center; }
   body.visual-open :is(#prev, #next) { width: 60px; height: 60px; color: var(--text); }
   body.visual-open :is(#prev, #next) svg { width: 30px; height: 30px; }

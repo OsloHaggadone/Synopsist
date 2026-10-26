@@ -94,9 +94,10 @@ function currentTheme() {
   return document.documentElement.dataset.theme || (prefersLight.matches ? "light" : "dark");
 }
 
-// The browser's own bars (on phones) take the page's color.
+// The browser's own bars on phones, and an iPhone's status bar, take the color at the top of the page:
+// the page's own, or the full-screen view's.
 function showTheme() {
-  $('meta[name="theme-color"]').content = getComputedStyle(document.body).backgroundColor;
+  $('meta[name="theme-color"]').content = getComputedStyle(visualOpen() ? $("#visual") : document.body).backgroundColor;
 }
 
 // A quick cross-fade while the page or the colors change, where the browser can.
@@ -110,8 +111,8 @@ function crossFade(change) {
   document.startViewTransition(change).finished.finally(() => root.classList.remove("cross-fading"));
 }
 
-// New colors cross-fade in, except on iPhones and iPads: in Safari their status bar takes its color
-// from the top of the page, and the colors changing under a cross-fade can leave it the old one.
+// New colors cross-fade in, except on iPhones and iPads: their status bar takes its color from the top
+// of the page, and the colors changing under a cross-fade can leave it the old one.
 function fadeColors(change) {
   if (IOS) change();
   else crossFade(change);
@@ -1048,6 +1049,7 @@ function setVisualOpen(open) {
   $("#fullscreen").setAttribute("aria-pressed", String(open));
   $("#fullscreen").setAttribute("aria-label", open ? "Exit full screen" : "Full screen");
   setIcon($("#fullscreen"), open ? "collapse" : "expand");
+  showTheme();
   clearTimeout(coverTimer);
   clearTimeout(closing);
   closing = open ? null : setTimeout(() => {

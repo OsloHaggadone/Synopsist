@@ -20,5 +20,5 @@ CATALOG_URL = "https://oslohaggadone.github.io/Synopsist/library/catalog.json"
 [[d1_databases]]
 binding = "EVENTS"
 database_name = "synopsist-events"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "6b98e6e2-93fa-4ac8-8a71-d3d231b75667"
 migrations_dir = "migrations"

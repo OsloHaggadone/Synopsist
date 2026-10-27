@@ -35,7 +35,8 @@ const recorded = [];
 if (DEBUG) window.synopsistEvents = recorded;
 
 const endpoint = (() => {
-  const url = SITE.eventsUrl || document.querySelector('meta[name="synopsist-events"]')?.content;
+  // the page's own server first (app/server.py on this computer), else the live API
+  const url = document.querySelector('meta[name="synopsist-events"]')?.content || SITE.eventsUrl;
   return url ? new URL(url, location.href).href : null;
 })();
 let waiting = []; // events not sent yet

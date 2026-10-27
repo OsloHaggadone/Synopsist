@@ -2,11 +2,11 @@
 // Song titles, albums, track order, and per-song store links live in data/catalog.csv.
 
 export const SITE = {
-  // Where the published site sends listening events: the listening API on Cloudflare (worker/), as
-  // "https://synopsist-events.<your-subdomain>.workers.dev/events" once it's deployed (README.md,
-  // "Running the listening API online"). Empty, nothing is sent; python app/server.py on this
-  // computer tells the page its own address instead.
-  eventsUrl: "",
+  // Where the published site sends listening events: the listening API on Cloudflare (worker/;
+  // README.md, "Running the listening API online"). Empty, nothing is sent. python app/server.py on
+  // this computer tells the page its own address, which comes first; the local preview (serve.py)
+  // sends here, and the API turns it away (it takes only the published site's pages).
+  eventsUrl: "https://synopsist-events.oslohaggadone.workers.dev/events",
 
   artist: "Oslo Haggadone",
   tagline: "Independent artist. Every song, free to stream.",

@@ -1,0 +1,31 @@
+# Fly.io runs the listening API from this folder (ROADMAP, Phase 4; the steps are in README.md). The
+# website stays on GitHub Pages: this is only app/server.py, built from the Dockerfile. After changing
+# the API, deploy it again from this folder with: fly deploy
+app = "synopsist-events"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# the songs it takes events for: the live site's own list, so a new song counts once it's published
+[env]
+  SYNOPSIST_CATALOG_URL = "https://oslohaggadone.github.io/Synopsist/library/catalog.json"
+
+# HTTPS at https://<app>.fly.dev. The server stops when nothing has come in for a while and starts
+# again with the next request (a few seconds), so it costs almost nothing while no one listens.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+# the disk that keeps the database and its daily backups through restarts and deploys
+[[mounts]]
+  source = "synopsist_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

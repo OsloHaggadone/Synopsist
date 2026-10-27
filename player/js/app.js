@@ -15,7 +15,7 @@ import { clock, el, icon, replay, restart, setIcon } from "./dom.js";
 import { dropdown } from "./dropdown.js";
 import { songEffects } from "./effects.js";
 import { equalize } from "./eq.js";
-import { setSharing, sharingEnabled } from "./listening.js";
+import { listenerTag, setSharing, sharingEnabled } from "./listening.js";
 import { liveEq } from "./liveeq.js";
 import { isFavorite, onMarksChange, rate, ratingOf, toggleFavorite } from "./marks.js";
 import { loadNotes } from "./notes.js";
@@ -150,6 +150,15 @@ function showSettings() {
   $("#motion-note").hidden = !motionReduced(); // the device asks for less motion: Off, whatever is chosen
   $("#live-eq-note").hidden = !liveEqSetting() || graphics() !== "off";
   showAdvice();
+  showListenerTag();
+}
+
+// The start of this browser's random ID, once it has one, so a listener can find their own
+// listening in the data (as scripts/listening_log.py shows it)
+function showListenerTag() {
+  const tag = sharingEnabled() && listenerTag();
+  $("#listener-tag").hidden = !tag;
+  if (tag) $("#listener-tag").textContent = `This browser's random ID starts with ${tag}.`;
 }
 
 const LEVELS = { high: "High", low: "Low", off: "Off" };
@@ -190,6 +199,7 @@ function wireSharing() {
     box.addEventListener("change", () => {
       setSharing(box.checked);
       for (const other of switches) other.checked = box.checked;
+      showListenerTag();
       toast(box.checked ? "Thanks! Sharing anonymous listening data" : "Listening data sharing is off");
     });
   }

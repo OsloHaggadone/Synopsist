@@ -1,5 +1,6 @@
 """Paths and settings shared across Synopsist."""
 
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -7,7 +8,9 @@ DATA_DIR = ROOT / "data"
 STREAM_DIR = DATA_DIR / "stream"  # the MP3s, one folder per album
 CATALOG_CSV = DATA_DIR / "catalog.csv"  # one row per song; the only tracked file in data/
 ANALYSIS_DIR = DATA_DIR / "analysis"  # cached frame-level audio analysis, one .npz per audio file
-DB_PATH = DATA_DIR / "synopsist.db"
+# The database. SYNOPSIST_DB puts it elsewhere: on the API's host, its permanent disk (fly.toml), or
+# here, a copy of the live one (python scripts/listening_log.py --db data/live.db does the same).
+DB_PATH = Path(os.environ.get("SYNOPSIST_DB") or DATA_DIR / "synopsist.db")
 MODELS_DIR = ROOT / "models"
 
 PLAYER_DIR = ROOT / "player"  # the website

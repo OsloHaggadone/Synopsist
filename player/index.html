@@ -13,7 +13,11 @@
   <meta property="og:title" content="Oslo Haggadone">
   <meta property="og:description" content="Stream every song by Oslo Haggadone for free.">
   <link rel="icon" href="images/icon-64.png" type="image/png">
-  <link rel="apple-touch-icon" href="images/icon-180.png">
+  <!-- the iPhone app (Add to Home Screen): its name and icon, the dark one (scripts/make_app_icons.py) -->
+  <link rel="apple-touch-icon" href="images/app-icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Synopsist">
   <link rel="preload" href="fonts/kazesawa-regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/exo-variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
@@ -338,6 +342,7 @@
           <span>Share my anonymous listening data</span>
         </label>
         <p class="settings-note">What you play, pause, skip, and replay, linked only to a random ID made in this browser. Turning it off deletes that ID. <a href="#privacy">Read the privacy note</a></p>
+        <p class="settings-note" id="listener-tag" hidden></p>
       </section>
 
       <section class="settings-group" aria-labelledby="keys-title">

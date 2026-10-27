@@ -2,6 +2,11 @@
 // Song titles, albums, track order, and per-song store links live in data/catalog.csv.
 
 export const SITE = {
+  // Where the player sends listening events (app/server.py's POST /events) once that runs on a server
+  // of its own (ROADMAP, Phase 4), e.g. "https://your-api.example.com/events". Leave it empty until
+  // then: python app/server.py tells the page itself, and GitHub Pages has no API, so nothing is sent.
+  eventsUrl: "",
+
   artist: "Oslo Haggadone",
   tagline: "Independent artist. Every song, free to stream.",
 

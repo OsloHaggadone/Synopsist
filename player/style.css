@@ -782,6 +782,9 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 .menu-item::before { content: ""; position: absolute; inset: 0; z-index: -1; transform: skewX(var(--skew)); border-radius: var(--radius); }
 .menu-item:active::before, :root[data-input="keyboard"] .menu-item:focus-visible::before { background: var(--hover); }
 .menu-item svg { width: 18px; height: 18px; color: var(--muted); }
+.menu-rating { display: flex; justify-content: center; padding: 0.35rem 0.5rem 0.2rem; border-top: 1px solid var(--line); }
+.menu-rating .star { width: 38px; height: 40px; }
+.menu-rating .star svg { width: 22px; height: 22px; }
 @media (hover: hover) {
   .menu-item:hover::before { background: var(--hover); }
 }
@@ -1567,8 +1570,17 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
    looks no further, the pinned top bar and full-screen view under it never read. */
 .status-band { display: none; }
 :root[data-ios] .status-band { display: block; position: fixed; inset: 0 0 auto; z-index: 2147483647; height: 12px; }
+/* Behind the clock iOS shows the page that's scrolled up there, never the scenery pinned behind it
+   (the sky, the moon's light, a song's effects), only the page's color: so the scenery fades up into
+   that color at the top of the screen, or its lights end in a line under the clock (the user saw one
+   on the dark side, and on the light side in Facades' effects) */
+:root[data-ios] .scenery::after { content: ""; position: absolute; inset: 0 0 auto; height: 4rem; background: linear-gradient(var(--bg), transparent); pointer-events: none; }
 /* The top bar is fixed: when the page bounces it stays under the clock, the page moving beneath it
    (the user wanted the bounce, not the bar coming away from the clock). */
+/* Pressing and holding picks out no text and pops up no menu, as in an app (the user asked); the
+   search box still can */
+:root[data-ios] body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+:root[data-ios] :is(input, textarea) { -webkit-user-select: text; user-select: text; }
 :root[data-ios] .topbar { position: fixed; inset: 0 0 auto; }
 :root[data-ios] .player-page { padding-top: calc(64px + env(safe-area-inset-top)); }
 /* Full screen: iOS draws only the page behind the clock, what's scrolled up under it, never what's
@@ -1583,18 +1595,23 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 :root[data-ios] body.visual-inline { padding-top: 120px; }
 :root[data-ios] body.visual-inline .visual { position: absolute; inset: auto 0; height: 100%; }
 :root[data-ios] .side-body { overscroll-behavior: contain; }
-:root[data-ios] .visual :is(.backdrops, .scenes) { top: -120px; overflow: hidden; }
-:root[data-ios] .visual :is(.backdrop, .scene) { top: 120px; }
+/* and 120px below it: an iPhone app's page can end above the bottom of the screen (by the home bar),
+   where iOS still draws the page, and the view stopped there over a strip of the page's color (the
+   user's screenshot) */
+:root[data-ios] .visual :is(.backdrops, .scenes) { top: -120px; bottom: -120px; overflow: hidden; }
+:root[data-ios] .visual :is(.backdrop, .scene) { top: 120px; bottom: 120px; }
 :root[data-ios] .visual .backdrop { overflow: visible; }
-:root[data-ios] .visual::before { content: ""; position: absolute; inset: auto 0 100%; z-index: -2; height: 120px; background: rgb(6 4 12); pointer-events: none; } /* (the view's own background) */
+:root[data-ios] .visual::before, :root[data-ios] .visual::after { content: ""; position: absolute; inset: auto 0 100%; z-index: -2; height: 120px; background: rgb(6 4 12); pointer-events: none; } /* (the view's own background) */
+:root[data-ios] .visual::after { inset: 100% 0 auto; }
 /* the vignette reaches up there too, darkening it as it darkens the view's top edge (most at the
    corners), and lifting with it in a chorus (js/effects.js sets --vignette): a fixed shade stayed
    dark over the brightened art (the user saw it in Facades' chorus) */
 :root[data-ios] .visual-vignette {
-  top: -120px;
+  inset: -120px 0;
   background:
     linear-gradient(to right, rgb(2 1 6 / 0.8), rgb(2 1 6 / 0.46) 25%, rgb(2 1 6 / 0.33) 50%, rgb(2 1 6 / 0.46) 75%, rgb(2 1 6 / 0.8)) top / 100% 120px no-repeat,
-    radial-gradient(ellipse at center, transparent 50%, rgb(2 1 6 / 0.8) 100%) bottom / 100% calc(100% - 120px) no-repeat;
+    linear-gradient(to right, rgb(2 1 6 / 0.8), rgb(2 1 6 / 0.46) 25%, rgb(2 1 6 / 0.33) 50%, rgb(2 1 6 / 0.46) 75%, rgb(2 1 6 / 0.8)) bottom / 100% 120px no-repeat,
+    radial-gradient(ellipse at center, transparent 50%, rgb(2 1 6 / 0.8) 100%) center / 100% calc(100% - 240px) no-repeat;
 }
 /* the particles and rays too (js/effects.js draws them that much lower), so a ray falling in from
    above, like Facades' shaft, isn't cut off at the top of the screen (the user's screenshot) */

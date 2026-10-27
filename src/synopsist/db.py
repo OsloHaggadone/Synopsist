@@ -80,6 +80,7 @@ ADDED_COLUMNS = {
 }
 SEGMENT_COLUMNS = ["track_id", "idx", "start_s", "end_s", "bpm", "key", "scale", "key_strength",
                    "onset_rate", "loudness_lufs", "embedding"]
+EVENT_COLUMNS = ["user_id", "track_id", "event", "position_s", "from_s", "to_s", "client_ts"]
 
 
 def connect(path: Path = DB_PATH) -> sqlite3.Connection:
@@ -96,6 +97,15 @@ def connect(path: Path = DB_PATH) -> sqlite3.Connection:
             if name not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {declaration}")
     return conn
+
+
+def save_events(conn: sqlite3.Connection, events: list[dict]) -> None:
+    """Store listening events as they came (app/server.py has checked them), all in one transaction."""
+    with conn:
+        conn.executemany(
+            f"INSERT INTO events ({', '.join(EVENT_COLUMNS)}) VALUES ({', '.join(':' + c for c in EVENT_COLUMNS)})",
+            [{column: event.get(column) for column in EVENT_COLUMNS} for event in events],
+        )
 
 
 def to_blob(vector) -> bytes:

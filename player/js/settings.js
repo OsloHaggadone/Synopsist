@@ -24,7 +24,7 @@ const COLLAPSED_KEY = "synopsist.collapsed";
 export const PALETTES = ["hollow-journey", "hollow-journey-beyond", "planetary-fields", "eternal-synopsis"];
 export const THEMES = ["auto", "light", "dark"];
 export const GRAPHICS = ["high", "low", "off"];
-export const EQS = ["flat", "bass-boost", "bass-reduce", "treble-boost", "vocal-boost", "electronic", "small-speakers"];
+export const EQS = ["flat", "bass-boost", "bass-reduce", "treble-boost", "vocal-boost", "electronic", "rnb", "small-speakers"];
 export const SORTS = ["albums", "popular", "newest", "title", "favorites"];
 
 const root = document.documentElement;

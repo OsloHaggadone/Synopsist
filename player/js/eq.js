@@ -34,6 +34,7 @@ const PRESETS = {
   "vocal-boost": [-2, -2, -1, 0, 2, 3.5, 3.5, 2, 0, -1],
   electronic: [4.5, 4, 1.5, 0, -1.5, -1, 0, 1.5, 3, 4],
   "small-speakers": [-3, 0, 3.5, 3, 1, 0, 0, 1.5, 2, 1], // tiny speakers can't play the lowest notes anyway
+  rnb: [3.5, 4.5, 3, 0.5, -1, -0.5, 1, 1.5, 2, 2.5], // warm, round lows, smooth vocals, silky highs
 };
 const MARGIN_DB = 0.5; // the preamp takes back this much more than the biggest boost
 const GLIDE_S = 0.03; // a new preset (or a song's level) takes about three times this to settle in

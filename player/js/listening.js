@@ -1,35 +1,78 @@
 // Raw listening events, in the format the backend expects (see "Event format" in CLAUDE.md).
 // The player only reports what happened; the backend decides what counts as a replay.
 //
-// Phase 2: events are kept in memory, and printed to the browser console when the page URL has
-// ?debug. Phase 3 sends them to the backend with an anonymous ID stored in this browser, and must
-// delete that ID when the listener turns sharing off (the privacy note promises this).
+// With sharing on (the default, unless the browser sends Global Privacy Control), each event goes to
+// the event API (app/server.py, POST /events) with a random ID made in this browser, in batches:
+// every few seconds, and at once when the page is hidden or closed (navigator.sendBeacon). Turning
+// sharing off deletes the ID and whatever hadn't been sent yet (the privacy note promises this). The
+// API is the page's own server when it has one (app/server.py says so in a meta tag), or
+// SITE.eventsUrl (site.js) once it runs elsewhere; with neither (GitHub Pages for now, the private
+// copy), nothing is sent and no ID is made. With ?debug in the URL, events are printed too.
+
+import { SITE } from "../site.js";
 
 const SHARE_KEY = "synopsist.shareListening";
+const ID_KEY = "synopsist.listener";
+const SEND_EVERY_MS = 10_000; // a batch goes this long after its first event
+const SEND_AT = 25; // or as soon as this many are waiting
+const RETRY_MS = 30_000; // after the API couldn't be reached
+const KEEP_AT_MOST = 500; // waiting events (the oldest go first while it can't be reached)
 const DEBUG = new URLSearchParams(location.search).has("debug");
 const recorded = [];
 if (DEBUG) window.synopsistEvents = recorded;
 
-function storedChoice() {
+const endpoint = (() => {
+  const url = SITE.eventsUrl || document.querySelector('meta[name="synopsist-events"]')?.content;
+  return url ? new URL(url, location.href).href : null;
+})();
+let waiting = []; // events not sent yet
+let timer = 0;
+let id = null;
+
+function store(key, value) {
   try {
-    return localStorage.getItem(SHARE_KEY);
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
   } catch {
-    return null; // storage blocked: fall back to the default
+    // storage blocked: it lasts until the page is closed
+  }
+}
+
+function recall(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
   }
 }
 
 // On unless the listener turned it off, or their browser sends Global Privacy Control.
 export function sharingEnabled() {
-  const choice = storedChoice();
+  const choice = recall(SHARE_KEY);
   return choice === null ? !navigator.globalPrivacyControl : choice === "1";
 }
 
 export function setSharing(on) {
-  try {
-    localStorage.setItem(SHARE_KEY, on ? "1" : "0");
-  } catch {
-    // the choice lasts until the page is closed
+  store(SHARE_KEY, on ? "1" : "0");
+  if (on) return;
+  // the ID goes, and so does anything not sent yet
+  id = null;
+  store(ID_KEY, null);
+  waiting = [];
+  clearTimeout(timer);
+  timer = 0;
+}
+
+// The listener's random ID ("anon_" and 32 hex digits, nothing else in it), made the first time an
+// event is to be sent.
+function listenerId() {
+  id ??= recall(ID_KEY);
+  if (!/^anon_[0-9a-f]{32}$/.test(id ?? "")) {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    id = `anon_${[...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+    store(ID_KEY, id);
   }
+  return id;
 }
 
 const round = (seconds) => Math.round(seconds * 10) / 10;
@@ -38,8 +81,43 @@ const round = (seconds) => Math.round(seconds * 10) / 10;
 // fields: { position_s } for every event except seek, which has { from_s, to_s }
 export function logEvent(trackId, event, fields) {
   if (!sharingEnabled()) return;
-  const record = { track_id: trackId, event, timestamp: new Date().toISOString() };
+  const record = { user_id: endpoint ? listenerId() : null, track_id: trackId, event, timestamp: new Date().toISOString() };
   for (const [name, value] of Object.entries(fields)) record[name] = round(value);
-  recorded.push(record);
-  if (DEBUG) console.log("[listening]", JSON.stringify(record));
+  if (DEBUG) {
+    recorded.push(record);
+    console.log("[listening]", JSON.stringify(record));
+  }
+  if (!endpoint) return;
+  waiting.push(record);
+  if (waiting.length > KEEP_AT_MOST) waiting.splice(0, waiting.length - KEEP_AT_MOST);
+  // the page going away (the player notes where it was): sent now, or never
+  if (document.visibilityState === "hidden") send(true);
+  else if (waiting.length >= SEND_AT) send();
+  else if (!timer) timer = setTimeout(send, SEND_EVERY_MS);
+}
+
+// The waiting events, in one request. As text/plain, so a page may send it to another site without
+// asking first, and a beacon (which outlives the page) can carry it.
+function send(leaving = false) {
+  clearTimeout(timer);
+  timer = 0;
+  if (!waiting.length) return;
+  const batch = waiting;
+  waiting = [];
+  const body = JSON.stringify(batch);
+  if (leaving && navigator.sendBeacon?.(endpoint, new Blob([body], { type: "text/plain" }))) return;
+  fetch(endpoint, { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: body.length < 60_000 })
+    .then((response) => {
+      if (response.status >= 500) throw new Error(`HTTP ${response.status}`); // (a 4xx won't get better)
+    })
+    .catch(() => {
+      if (!sharingEnabled()) return;
+      waiting = [...batch, ...waiting].slice(-KEEP_AT_MOST); // tried again later, in order
+      timer ||= setTimeout(send, RETRY_MS);
+    });
+}
+
+if (endpoint) {
+  addEventListener("pagehide", () => send(true));
+  document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && send(true));
 }

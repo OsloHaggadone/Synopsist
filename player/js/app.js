@@ -599,7 +599,7 @@ function openMenu(button, track) {
     const symbol = icon(name);
     if (name === "heart" && !favorite) symbol.style.fill = "none"; // (an outline until it's a favorite)
     return el("button", { class: "menu-item", role: "menuitem", onclick: () => { closeMenu(); action(); } }, symbol, el("span", {}, label));
-  }));
+  }), ...(ratingsSetting() ? [el("div", { class: "menu-rating" }, ratingStars(track))] : [])); // (with Star ratings on: the row has no room for them)
   menu.hidden = false;
   // beside the button: under it, or over it where the player bar would cover it
   const box = button.getBoundingClientRect();

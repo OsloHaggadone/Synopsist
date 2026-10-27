@@ -309,6 +309,12 @@ export class Player extends EventTarget {
       });
     }
     for (const name of ["waiting", "playing", "canplay"]) audio.addEventListener(name, () => this._changed("state"));
+    // the lock screen told whether it's playing, so its buttons stay the music's
+    for (const name of ["play", "pause"]) {
+      audio.addEventListener(name, () => {
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
+      });
+    }
     audio.addEventListener("volumechange", () => {
       this._savePrefs();
       this._changed("volume");
@@ -340,8 +346,11 @@ export class Player extends EventTarget {
     }
   }
 
+  // (the handlers are set again with each song: iOS can drop them when the audio changes source, and
+  // the lock screen's next and previous stopped working)
   _updateMediaSession(track) {
     if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") return;
+    this._mediaSessionHandlers();
     const album = this.albums.get(track.album);
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title,

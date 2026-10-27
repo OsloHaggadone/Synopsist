@@ -70,6 +70,9 @@
     <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></symbol>
+    <!-- Safari's Share button and its Add to Home Screen, for the app page's steps -->
+    <symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5M8.2 7.3 12 3.5l3.8 3.8"/><path d="M8.5 10.5H7a1.8 1.8 0 0 0-1.8 1.8v7.2A1.8 1.8 0 0 0 7 21.3h10a1.8 1.8 0 0 0 1.8-1.8v-7.2a1.8 1.8 0 0 0-1.8-1.8h-1.5"/></g></symbol>
+    <symbol id="i-home-add" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.8" y="3.8" width="16.4" height="16.4" rx="3.6"/><path d="M12 8.4v7.2M8.4 12h7.2"/></g></symbol>
     <!-- the heart and the star have no fill of their own: style.css fills them once they're on -->
     <symbol id="i-heart" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5 4.4 13a4.9 4.9 0 0 1 6.9-6.9l.7.7.7-.7a4.9 4.9 0 0 1 6.9 6.9z"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
@@ -114,7 +117,7 @@
         <ul class="release-list" id="release-list"></ul>
       </section>
     </div>
-    <footer class="landing-footer">© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span></footer>
+    <footer class="landing-footer">© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span><span class="app-link"> · <a href="#app">Get the app</a></span></footer>
   </section>
 
   <!-- ===== Music page: a song-select screen ================================================= -->
@@ -199,7 +202,9 @@
         <p>
           <strong>What this site records.</strong> While you listen, the player notes what you do with each song:
           when you press play or pause, skip a song, finish it, or jump to a different moment in it (for example from
-          2:22 back to 1:58). Each note holds the song, the moment in the song, and the time.
+          2:22 back to 1:58). Each note holds the song, the moment in the song, and the time. The notes are kept in a
+          database on Cloudflare, which runs this site's listening service; one that can't be sent right away (with
+          no connection, say) waits in this browser until it can.
         </p>
         <p>
           <strong>Why.</strong> It shows Oslo which parts of each song people replay, skip, or stop at, and it lets the
@@ -215,7 +220,7 @@
           <span>Share my anonymous listening data</span>
         </label>
         <p class="fine">You can turn this off at any time. The player works the same either way, and turning it off also
-          deletes the random ID from this browser.</p>
+          deletes the random ID from this browser, and any notes still waiting to be sent.</p>
       </section>
     </main>
 
@@ -362,9 +367,44 @@
       </section>
     </section>
 
+    <!-- ===== The app ("#app"): adding the site to the Home Screen, the link to send iPhone listeners;
+         js/app.js shows the parts for the device it's opened on (showAppPage) ==================== -->
+    <section class="app-page" id="app" aria-labelledby="app-title">
+      <a class="back-link" id="app-back" href="#"><svg><use href="#i-arrow"/></svg><span>Back</span></a>
+      <h1 class="section-title" id="app-title">Get the app</h1>
+      <p class="settings-intro">Add Synopsist to your iPhone's Home Screen and it opens like an app: full screen, with
+        the lock screen's controls, and it updates by itself. Free, with no App Store and no account.</p>
+      <p class="app-installed" id="app-installed" hidden>You're in the app already.</p>
+
+      <section class="settings-group" aria-labelledby="app-iphone-title">
+        <h2 id="app-iphone-title">On iPhone or iPad</h2>
+        <p class="app-in-app" id="app-in-app" hidden>First open this page in Safari: the browsers inside apps like
+          Instagram and TikTok can't add to the Home Screen. Tap <svg class="glyph" aria-hidden="true"><use href="#i-more"/></svg>
+          and choose to open it in your browser.</p>
+        <ol class="app-steps">
+          <li>In Safari, open <strong>oslohaggadone.github.io/Synopsist</strong>.</li>
+          <li>Tap <svg class="glyph" aria-label="the three dots"><use href="#i-more"/></svg> next to the address, then
+            <strong>Share</strong> <svg class="glyph" aria-hidden="true"><use href="#i-share"/></svg>. On an iPhone
+            before iOS 26, tap Share at the bottom of the screen.</li>
+          <li>Scroll down and tap <strong>Add to Home Screen</strong> <svg class="glyph" aria-hidden="true"><use href="#i-home-add"/></svg>.</li>
+          <li>Leave <strong>Open as Web App</strong> on, and tap <strong>Add</strong>.</li>
+          <li>Open <strong>Synopsist</strong> from your Home Screen.</li>
+        </ol>
+      </section>
+
+      <section class="settings-group" aria-labelledby="app-other-title">
+        <h2 id="app-other-title">On Android or a computer</h2>
+        <button class="btn btn-primary app-install" id="app-install" type="button" hidden><span>Install the app</span><svg><use href="#i-arrow"/></svg></button>
+        <p class="app-other">In Chrome or Edge, open the browser's menu and choose <strong>Install</strong> (or
+          <strong>Add to Home screen</strong>).</p>
+        <p class="settings-note">The app shares anonymous listening data the way the website does, and Settings can turn
+          it off. <a href="#privacy">Read the privacy note</a></p>
+      </section>
+    </section>
+
     <footer class="site-footer">
       <div class="also-on"><span>Also on</span><ul class="artist-links"></ul></div>
-      <p>© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span>. All songs free to stream.</p>
+      <p>© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span>. All songs free to stream.<span class="app-link"> <a href="#app">Get the app</a></span></p>
       <p class="shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> seek · <kbd>N</kbd>/<kbd>P</kbd> next/previous · <kbd>S</kbd> shuffle · <kbd>R</kbd> repeat · <kbd>Q</kbd> queue · <kbd>D</kbd> song details · <kbd>F</kbd> full screen</p>
     </footer>
   </div>

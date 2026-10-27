@@ -220,23 +220,52 @@ function wireSettings() {
   onSettingsChange(showSettings);
   showSettings();
   wireSharing();
+  $("#app-install").addEventListener("click", async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => {});
+    installPrompt = null; // (each one can be used once)
+    showAppPage();
+  });
+}
+
+// The app page (#app): adding the site to the Home Screen. Shown there: whether this is the app
+// already, a note for the browsers inside apps like Instagram (which can't add to the Home Screen),
+// and an Install button where the browser offers one (Chrome and Edge do; iPhones add to the Home
+// Screen only from the Share menu, so the page lists the steps).
+const inTheApp = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+if (inTheApp) document.documentElement.dataset.app = ""; // (style.css hides the "Get the app" links)
+const IN_APP_BROWSER = /Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|LinkedInApp|Line\//;
+let installPrompt = null;
+addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault(); // (the page's button asks instead)
+  installPrompt = event;
+  showAppPage();
+});
+
+function showAppPage() {
+  $("#app-installed").hidden = !inTheApp;
+  $("#app-in-app").hidden = !(IOS && IN_APP_BROWSER.test(navigator.userAgent));
+  $("#app-install").hidden = !installPrompt || inTheApp;
 }
 
 // --- the pages -------------------------------------------------------------------------------
 
 let backTo = ""; // where the settings page's Back goes: the landing page (""), or the music page
+let appBackTo = ""; // and the app page's
 let musicScroll = null; // how far down the music page was when the settings opened
 const jump = (y) => window.scrollTo({ top: y, behavior: "instant" });
 
 function showView(firstLoad) {
   const hash = decodeURIComponent(location.hash.slice(1));
-  const view = hash === "settings" ? "settings" : hash ? "player" : "home";
+  const view = hash === "settings" || hash === "app" ? hash : hash ? "player" : "home";
   const from = document.body.dataset.view;
   const switching = from !== view;
   if (view === "settings" && switching) {
     backTo = from === "home" ? "" : "music";
     musicScroll = from === "player" ? window.scrollY : null;
   }
+  if (view === "app" && switching) appBackTo = { home: "", settings: "settings" }[from] ?? "music";
   const apply = () => {
     document.body.dataset.view = view;
     for (const link of $$(".settings-link")) {
@@ -254,6 +283,11 @@ function showView(firstLoad) {
     if (view === "settings") {
       $("#settings-back").href = `#${backTo}`;
       showSettings(); // (how full screen has been running may have changed the advice)
+      return;
+    }
+    if (view === "app") {
+      $("#app-back").href = `#${appBackTo}`;
+      showAppPage();
       return;
     }
     // back from the settings: the music page where it was

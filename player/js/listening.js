@@ -2,12 +2,13 @@
 // The player only reports what happened; the backend decides what counts as a replay.
 //
 // With sharing on (the default, unless the browser sends Global Privacy Control), each event goes to
-// the event API (app/server.py, POST /events) with a random ID made in this browser, in batches:
-// every few seconds, and at once when the page is hidden or closed (navigator.sendBeacon). Turning
-// sharing off deletes the ID and whatever hadn't been sent yet (the privacy note promises this). The
-// API is the page's own server when it has one (app/server.py says so in a meta tag), or
-// SITE.eventsUrl (site.js) once it runs elsewhere; with neither (GitHub Pages for now, the private
-// copy), nothing is sent and no ID is made. With ?debug in the URL, events are printed too.
+// the event API (POST /events) with a random ID made in this browser, in batches: every 30 seconds,
+// and at once when the page is hidden or closed (navigator.sendBeacon). Turning sharing off deletes
+// the ID and whatever hadn't been sent yet (the privacy note promises this). The API is the page's
+// own server when it has one (app/server.py on this computer says so in a meta tag), or
+// SITE.eventsUrl (site.js): the Worker on Cloudflare (worker/) for the published site. With neither
+// (the private copy, which empties eventsUrl), nothing is sent and no ID is made. With ?debug in the
+// URL, events are printed too.
 //
 // The first part of the self-check (ROADMAP, Phase 4): a seek or a pause is only recorded once it has
 // lasted a few seconds (SETTLE_MS). Seeks closer together than that are one jump, from where the first
@@ -15,14 +16,15 @@
 // undone by play within it is neither. Anything else first lets out what was held, so the order
 // stays true. The backend checks the same on its side (src/synopsist/events.py, app/server.py).
 //
-// Events that couldn't be sent (offline, or the page closing without a connection) wait in this
-// browser until the next visit, then go; turning sharing off deletes them too.
+// Events that couldn't be sent (offline, the API out of reach, or the page closing meanwhile) wait in
+// this browser until the next visit, then go; turning sharing off deletes them too.
 
 import { SITE } from "../site.js";
 
 const SHARE_KEY = "synopsist.shareListening";
 const ID_KEY = "synopsist.listener";
-const SEND_EVERY_MS = 10_000; // a batch goes this long after its first event
+const SEND_EVERY_MS = 30_000; // a batch goes this long after its first event (the free Worker takes
+                               // 100,000 requests a day: about one every 30 s is 800 hours of listening)
 const SEND_AT = 25; // or as soon as this many are waiting
 const RETRY_MS = 30_000; // after the API couldn't be reached
 const KEEP_AT_MOST = 500; // waiting events (the oldest go first while it can't be reached)
@@ -38,6 +40,7 @@ const endpoint = (() => {
 })();
 let waiting = []; // events not sent yet
 let held = null; // { record, timer }: a seek or a pause, until it has lasted SETTLE_MS
+let unreachable = false; // the last try didn't get through
 let timer = 0;
 let id = null;
 
@@ -160,7 +163,8 @@ function send(leaving = false) {
   timer = 0;
   if (leaving) letOut(false); // the page is going: what was held goes as it is
   if (!waiting.length) return keep();
-  if (leaving && navigator.onLine === false) return keep(); // nothing would get through: next visit
+  // nothing would get through (a beacon can't tell): they wait for the next visit
+  if (leaving && (navigator.onLine === false || unreachable)) return keep();
   const batch = waiting;
   waiting = [];
   const body = JSON.stringify(batch);
@@ -168,9 +172,11 @@ function send(leaving = false) {
   fetch(endpoint, { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: body.length < 60_000 })
     .then((response) => {
       if (response.status >= 500) throw new Error(`HTTP ${response.status}`); // (a 4xx won't get better)
+      unreachable = false;
       keep();
     })
     .catch(() => {
+      unreachable = true;
       if (!sharingEnabled()) return;
       waiting = [...batch, ...waiting].slice(-KEEP_AT_MOST); // tried again later, in order
       keep();

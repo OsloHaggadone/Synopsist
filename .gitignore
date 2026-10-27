@@ -39,3 +39,8 @@ __pycache__/
 
 # Windows metadata created when copying files into WSL
 *:Zone.Identifier
+
+# the Worker's (worker/): its packages, wrangler's local state, local-only settings
+/worker/node_modules/
+/worker/.wrangler/
+/worker/.dev.vars

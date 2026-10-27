@@ -1,0 +1,24 @@
+# Cloudflare runs the live site's listening API from this folder (src/index.js; ROADMAP, Phase 4: the
+# steps are in README.md, "Running the listening API online"). The free plan takes 100,000 requests
+# and writes 100,000 rows a day: one row per event.
+name = "synopsist-events"
+main = "src/index.js"
+compatibility_date = "2026-10-23"
+
+# No logs: they would keep each request, its address included (the privacy note promises none)
+[observability]
+enabled = false
+
+[vars]
+# the sites whose pages may send events (separated by commas)
+ORIGINS = "https://oslohaggadone.github.io"
+# the songs it takes events for: the live site's own list, so a new song counts once it's published
+CATALOG_URL = "https://oslohaggadone.github.io/Synopsist/library/catalog.json"
+
+# The database, made once with: npx wrangler d1 create synopsist-events
+# (its database_id goes here, in place of the zeros)
+[[d1_databases]]
+binding = "EVENTS"
+database_name = "synopsist-events"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

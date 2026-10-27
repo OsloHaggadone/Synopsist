@@ -1,5 +1,0 @@
-# What the listening API needs on its host (Dockerfile): app/server.py and the parts of src/ it uses.
-# No Essentia: the songs are analyzed on this computer. Same versions as requirements.txt.
-fastapi==0.143.0
-uvicorn==0.54.0
-numpy==2.5.3

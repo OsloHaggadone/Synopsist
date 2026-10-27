@@ -1,79 +1,79 @@
-"""Download the live site's listening data, to look at on this computer: a copy of the API's database
-(app/server.py's /admin/backup) as data/live.db, and a dated copy in data/backups/, which is also
-the backup kept off the server (the newest KEEP of them).
+"""Download the live site's listening data, to look at on this computer: the events in the API's D1
+database on Cloudflare (worker/), exported with wrangler under your Cloudflare login, as data/live.db,
+plus a dated copy in data/backups/ (the newest KEEP): the backup kept off Cloudflare, which can
+itself put the database back as it was at any moment of the last 7 days (D1 Time Travel).
 
-First time:  python scripts/pull_events.py --setup https://synopsist-events.fly.dev YOUR-TOKEN
-             (where the API is and its admin token, kept in data/live.json: git ignores data/)
-Then:        python scripts/pull_events.py
-Look at it:  ~/.venvs/datasette/bin/datasette data/live.db
-             python scripts/listening_log.py --db data/live.db
+Run:        python scripts/pull_events.py
+            python scripts/pull_events.py --local   the Worker running here (cd worker && npx wrangler dev)
+Look at it: ~/.venvs/datasette/bin/datasette data/live.db
+            python scripts/listening_log.py --db data/live.db
 """
 
 import argparse
-import json
+import os
 import shutil
+import sqlite3
+import subprocess
 import sys
-import urllib.error
-import urllib.request
+import tempfile
 from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from synopsist.config import DATA_DIR  # noqa: E402
+from synopsist import db, events  # noqa: E402
+from synopsist.config import DATA_DIR, ROOT  # noqa: E402
 
-SETTINGS = DATA_DIR / "live.json"
+WORKER_DIR = ROOT / "worker"
+DATABASE = "synopsist-events"  # worker/wrangler.toml
 LIVE = DATA_DIR / "live.db"
 BACKUPS = DATA_DIR / "backups"
 KEEP = 30
-SQLITE = b"SQLite format 3\x00"
-
-
-def ask(settings: dict, path: str):
-    request = urllib.request.Request(settings["url"] + path, headers={"Authorization": f"Bearer {settings['token']}"})
-    return urllib.request.urlopen(request, timeout=60)  # (a stopped server takes a few seconds to wake)
+LOCAL_BIN = Path.home() / ".local" / "bin"  # where Node.js was put (npx), if it isn't on the PATH
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Download the live listening data to data/live.db.")
-    parser.add_argument("--setup", nargs=2, metavar=("URL", "TOKEN"), help="where the API is, and its admin token")
+    parser.add_argument("--local", action="store_true", help="the Worker running on this computer (wrangler dev) instead")
     args = parser.parse_args()
-    if args.setup:
-        DATA_DIR.mkdir(exist_ok=True)
-        SETTINGS.write_text(json.dumps({"url": args.setup[0].rstrip("/"), "token": args.setup[1]}), encoding="utf-8")
-    if not SETTINGS.exists():
-        print("First tell it where the API is: python scripts/pull_events.py --setup URL TOKEN")
+    if not (WORKER_DIR / "node_modules").exists():
+        print("First install the Worker's tools: cd worker && npm install")
         return 1
-    settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
-    try:
-        with ask(settings, "/admin/status") as response:
-            status = json.load(response)
-        with ask(settings, "/admin/backup") as response:
-            data = response.read()
-    except urllib.error.HTTPError as error:
-        print(f"The API answered {error.code}." + (" Check the URL and the token. A lost token can't be read back"
-              " from Fly: set a new one (README.md, \"Running the listening API online\") and run --setup again."
-              if error.code == 404 else ""))
+    env = os.environ | {"PATH": f"{LOCAL_BIN}{os.pathsep}{os.environ.get('PATH', '')}"}
+    npx = shutil.which("npx", path=env["PATH"])
+    if not npx:
+        print("Node.js isn't installed (npx wasn't found): see README.md, \"Running the listening API online\".")
         return 1
-    except urllib.error.URLError as error:
-        print(f"Couldn't reach {settings['url']}: {error.reason}")
-        return 1
-    if not data.startswith(SQLITE):
-        print("What came back isn't a database; nothing was changed.")
-        return 1
-    partial = LIVE.with_suffix(".partial")
-    partial.write_bytes(data)
+    with tempfile.TemporaryDirectory() as folder:
+        export = Path(folder) / "events.sql"
+        result = subprocess.run([npx, "wrangler", "d1", "export", DATABASE, "--local" if args.local else "--remote",
+                                 "--table", "events", "--output", str(export)],
+                                cwd=WORKER_DIR, env=env, capture_output=True, text=True)
+        if result.returncode != 0 or not export.exists():
+            print((result.stderr or result.stdout).strip()[-1500:])
+            print("\nCouldn't export the live data. Logged in to Cloudflare (cd worker && npx wrangler login)? "
+                  "Is the database made and its id in worker/wrangler.toml?")
+            return 1
+        # A plain SQLite file, the export's table and rows, then this project's own tables and indexes
+        partial = LIVE.with_suffix(".partial")
+        partial.unlink(missing_ok=True)
+        conn = sqlite3.connect(partial)
+        conn.executescript(export.read_text(encoding="utf-8"))
+        conn.close()
+    conn = db.connect(partial)
+    total = events.totals(conn)
+    last = conn.execute("SELECT MAX(received_at) FROM events").fetchone()[0]
+    conn.execute("PRAGMA journal_mode = DELETE")  # one plain file, to copy or open in anything
+    conn.close()
     partial.replace(LIVE)
     BACKUPS.mkdir(exist_ok=True)
     shutil.copy2(LIVE, BACKUPS / f"live-{date.today().isoformat()}.db")
     for old in sorted(BACKUPS.glob("live-*.db"))[:-KEEP]:
         old.unlink()
 
-    print(f"{status['events']} events from {status['listeners']} listener(s); the latest arrived {status['last_event'] or 'never'}")
-    print(f"Saved to {LIVE} ({len(data) / 1e3:.0f} KB), and a copy in {BACKUPS}")
-    print(f"The server's disk is {status['disk_used_percent']}% full; it keeps {len(status['backups'])} daily backup(s) of its own")
-    if status["disk_used_percent"] >= 80:
-        print("That's getting full: see the note on the server's disk in ROADMAP.md (Phase 4).")
+    print(f"{total['events']} events from {total['listeners']} listener(s), about {total['songs']} song(s); "
+          f"the latest arrived {last or 'never'}")
+    print(f"Saved to {LIVE}, and a copy in {BACKUPS}")
     print(f"Look at it: ~/.venvs/datasette/bin/datasette {LIVE}")
     return 0
 

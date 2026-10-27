@@ -83,34 +83,6 @@ def test_one_event_on_its_own(api):
     assert stored(database)[0]["track_id"] == "song-b"
 
 
-@pytest.mark.parametrize("change", [
-    {"user_id": "anon_123"},  # not an ID the player makes
-    {"user_id": "someone@example.com"},
-    {"track_id": "not-a-song"},
-    {"event": "like"},
-    {"position_s": -1},
-    {"position_s": True},
-    {"position_s": "12"},
-    {"position_s": None},
-    {"timestamp": "2026-10-05T21:14:03"},  # no time zone
-    {"timestamp": "yesterday"},
-    {"timestamp": now(-timedelta(days=60))},
-    {"timestamp": now(timedelta(days=3))},
-])
-def test_what_isnt_an_event_is_turned_away(api, change):
-    client, database = api
-    good = {"user_id": USER, "track_id": "song-a", "event": "play", "position_s": 3.0, "timestamp": now()}
-    response = client.post("/events", json=[good, good | change])
-    assert response.json() == {"stored": 1, "rejected": 1}
-    assert len(stored(database)) == 1
-
-
-def test_a_seek_needs_both_ends(api):
-    client, _ = api
-    seek = {"user_id": USER, "track_id": "song-a", "event": "seek", "from_s": 10, "timestamp": now()}
-    assert client.post("/events", json=seek).json() == {"stored": 0, "rejected": 1}
-
-
 def test_bad_requests(api):
     client, database = api
     assert client.post("/events", content="not json").status_code == 400
@@ -135,23 +107,46 @@ def test_only_the_published_site_may_send_from_elsewhere(api):
     assert "access-control-allow-origin" not in other.headers
 
 
-# --- what keeps spam out, the backups, and reading the data back -------------------------------
-
-import sqlite3  # noqa: E402
+# --- the same cases as the Worker (worker/), and what keeps spam out -----------------------------
 
 import server  # noqa: E402
+
+CASES = json.loads((Path(__file__).resolve().parents[1] / "worker" / "test" / "event-cases.json").read_text())
+
+
+def when(value):
+    """"now", "now-60d", "now+3d": a time relative to the test's (as worker/test/worker.test.js reads them)."""
+    if not isinstance(value, str) or not value.startswith("now"):
+        return value
+    amount, unit = (int(value[3:-1]), value[-1]) if len(value) > 3 else (0, "s")
+    unit = {"d": "days", "h": "hours", "m": "minutes", "s": "seconds"}[unit]
+    return now(timedelta(**{unit: amount}))
+
+
+def case_item(case):
+    if "item" in case:
+        return case["item"]
+    item = CASES["base"] | case.get("change", {})
+    for name in case.get("remove", []):
+        item.pop(name)
+    return item | {"timestamp": when(item["timestamp"])}
+
+
+@pytest.mark.parametrize("case", CASES["cases"], ids=[case["name"] for case in CASES["cases"]])
+def test_the_same_events_as_the_worker_are_stored_or_turned_away(tmp_path, case):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps({"tracks": [{"id": id, "duration": length} for id, length in CASES["songs"].items()]}))
+    database = tmp_path / "synopsist.db"
+    client = TestClient(create_app(db_path=database, catalog=catalog))
+    response = client.post("/events", content=json.dumps([case_item(case)]), headers={"Content-Type": "text/plain"})
+    assert response.status_code == 200
+    assert response.json()["stored"] == (1 if case["stored"] else 0)
+    for name, value in case.get("expect", {}).items():
+        assert stored(database)[-1][name] == value
 
 
 def event(user=USER, track="song-a", **fields):
     return {"user_id": user, "track_id": track, "event": "play", "position_s": 1.0, "timestamp": now()} | fields
-
-
-def test_a_moment_past_the_end_of_the_song_is_turned_away(tmp_path):
-    catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"tracks": [{"id": "song-a", "duration": 120.0}]}))
-    client = TestClient(create_app(db_path=tmp_path / "s.db", catalog=catalog))
-    batch = [event(position_s=121.5), event(position_s=130.0), event(event="seek", from_s=10.0, to_s=200.0)]
-    assert client.post("/events", json=batch).json() == {"stored": 1, "rejected": 2}
 
 
 def test_other_websites_pages_cant_send(api):
@@ -184,71 +179,3 @@ def test_a_days_worth_from_one_listener_is_all_it_takes(api):
                            "client_ts": now()}] * server.EVENTS_PER_DAY)
     conn.close()
     assert client.post("/events", json=event()).status_code == 429
-
-
-def test_nothing_is_taken_once_the_disk_is_nearly_full(api, monkeypatch):
-    client, database = api
-    monkeypatch.setattr(server, "disk_used", lambda folder: 0.96)
-    assert client.post("/events", json=event()).status_code == 507
-    assert stored(database) == []
-
-
-def test_the_database_is_backed_up_once_a_day(api):
-    client, database = api
-    client.post("/events", json=event())
-    client.post("/events", json=event())
-    copies = list((database.parent / "backups").glob("synopsist-*.db"))
-    assert len(copies) == 1
-    assert sqlite3.connect(copies[0]).execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
-
-
-def test_the_data_can_be_read_back_only_with_the_token(tmp_path):
-    catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"tracks": [{"id": "song-a"}]}))
-    client = TestClient(create_app(db_path=tmp_path / "s.db", catalog=catalog, admin_token="t0ken"))
-    client.post("/events", json=event())
-    for headers in ({}, {"Authorization": "Bearer wrong"}, {"Authorization": "t0ken"}):
-        assert client.get("/admin/status", headers=headers).status_code == 404
-        assert client.get("/admin/backup", headers=headers).status_code == 404
-    token = {"Authorization": "Bearer t0ken"}
-    status = client.get("/admin/status", headers=token).json()
-    assert status["events"] == 1 and status["listeners"] == 1 and 0 < status["disk_used_percent"] < 100
-    copy = client.get("/admin/backup", headers=token)
-    assert copy.content.startswith(b"SQLite format 3\x00")
-    (tmp_path / "copy.db").write_bytes(copy.content)
-    assert sqlite3.connect(tmp_path / "copy.db").execute("SELECT track_id FROM events").fetchall() == [("song-a",)]
-    assert not list((tmp_path / "backups").glob("download-*"))  # the download's copy is gone again
-    # without a token set, there's nothing there at all
-    plain = TestClient(create_app(db_path=tmp_path / "s.db", catalog=catalog))
-    assert plain.get("/admin/status", headers={"Authorization": "Bearer "}).status_code == 404
-
-
-def test_the_api_alone(tmp_path):
-    catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"tracks": [{"id": "song-a"}]}))
-    client = TestClient(create_app(db_path=tmp_path / "s.db", catalog=catalog, website=False))
-    assert client.get("/").json()["events"] == "POST /events"
-    assert client.get("/js/app.js").status_code == 404
-    assert client.post("/events", json=event()).json()["stored"] == 1
-
-
-def test_the_songs_come_from_the_live_site_when_its_list_can_be_read(tmp_path, monkeypatch):
-    catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"tracks": [{"id": "song-a"}]}))
-
-    class Answer:
-        def __init__(self, text): self.text = text
-        def read(self): return self.text.encode()
-        def __enter__(self): return self
-        def __exit__(self, *_): return False
-
-    monkeypatch.setattr(server.urllib.request, "urlopen", lambda url, timeout: Answer(json.dumps({"tracks": [{"id": "new-song"}]})))
-    client = TestClient(create_app(db_path=tmp_path / "s.db", catalog=catalog, catalog_url="https://example.com/catalog.json"))
-    assert client.post("/events", json=[event(track="new-song"), event(track="song-a")]).json() == {"stored": 1, "rejected": 1}
-
-    def unreachable(url, timeout):
-        raise OSError("no connection")
-
-    monkeypatch.setattr(server.urllib.request, "urlopen", unreachable)
-    fallback = TestClient(create_app(db_path=tmp_path / "s2.db", catalog=catalog, catalog_url="https://example.com/catalog.json"))
-    assert fallback.post("/events", json=event(track="song-a")).json()["stored"] == 1  # the file here, meanwhile

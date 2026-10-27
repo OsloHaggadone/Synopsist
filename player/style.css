@@ -175,14 +175,16 @@ body {
   font: 400 16px/1.55 var(--font);
   -webkit-font-smoothing: antialiased;
 }
-body[data-view="player"], body[data-view="settings"].has-track { padding-bottom: calc(var(--bar-h) + 24px); }
+body[data-view="player"], body:is([data-view="settings"], [data-view="app"]).has-track { padding-bottom: calc(var(--bar-h) + 24px); }
 body.visual-open { overflow: hidden; }
 
-/* the pages: the title screen, the music, and the settings (which share the music page's top bar) */
+/* the pages: the title screen, the music, the settings, and the app's (the last two share the music
+   page's top bar) */
 body[data-view="home"] .player-page { display: none; }
 body:not([data-view="home"]) .landing { display: none; }
-body[data-view="settings"] main, body:not([data-view="settings"]) .settings-page { display: none; }
-body:is([data-view="home"], [data-view="settings"]):not(.has-track) .player-bar { display: none; }
+body:is([data-view="settings"], [data-view="app"]) main, body:not([data-view="settings"]) .settings-page,
+body:not([data-view="app"]) .app-page { display: none; }
+body:is([data-view="home"], [data-view="settings"], [data-view="app"]):not(.has-track) .player-bar { display: none; }
 
 svg { width: 1.25em; height: 1.25em; fill: currentColor; flex-shrink: 0; }
 .icons { position: absolute; width: 0; height: 0; overflow: hidden; }
@@ -1430,12 +1432,13 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 
 /* Compact and quiet: each setting's name, then a dropdown of its choices (a few small words under
    some of them in the list), and small notes. */
-.settings-page { max-width: 820px; margin: 0 auto; padding: clamp(1.25rem, 3.5vw, 2.25rem) clamp(1rem, 3.5vw, 3rem) 0; }
+.settings-page, .app-page { max-width: 820px; margin: 0 auto; padding: clamp(1.25rem, 3.5vw, 2.25rem) clamp(1rem, 3.5vw, 3rem) 0; }
 .back-link { display: inline-flex; align-items: center; gap: 0.45rem; margin: 0 0 1rem -0.15rem; padding: 0.3rem 0.15rem; color: var(--muted); font: 600 0.92rem var(--display); text-decoration: none; transition: color 0.2s; }
 .back-link:hover { color: var(--text); }
 .back-link svg { width: 1.1em; height: 1.1em; transform: scaleX(-1); }
-.settings-page > .section-title { font-size: clamp(1.5rem, 3.5vw, 2rem); }
-.settings-page > .section-title::after { display: none; } /* the first group's line is the one under the title */
+.settings-page > .section-title, .app-page > .section-title { font-size: clamp(1.5rem, 3.5vw, 2rem); }
+/* the first group's line is the one under the title */
+.settings-page > .section-title::after, .app-page > .section-title::after { display: none; }
 .settings-intro { margin: 0.35rem 0 1.5rem; color: var(--faint); font-size: 0.86rem; }
 
 .settings-group { padding: 1.4rem 0 1.6rem; border-top: 1px solid var(--line); }
@@ -1443,6 +1446,19 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 .settings-group h2::before { content: ""; flex: none; width: 0.45em; height: 0.45em; transform: rotate(45deg); background: var(--accent); }
 .settings-group .toggle { font-size: 0.92rem; }
 .settings-note { margin: 0.6rem 0 0; color: var(--faint); font-size: 0.8rem; line-height: 1.5; }
+/* the app page (#app): the steps for adding the site to the Home Screen, numbered, with the buttons'
+   own icons in the text */
+.app-steps { display: grid; gap: 0.75rem; margin: 0; padding-left: 1.4rem; font-size: 0.95rem; line-height: 1.55; }
+.app-steps li { padding-left: 0.2rem; }
+.app-steps li::marker { color: var(--accent); font: 650 0.95rem var(--display); }
+.glyph { width: 1.15em; height: 1.15em; vertical-align: -0.22em; color: var(--accent); fill: currentColor; }
+.app-installed { margin: 0 0 1.25rem; color: var(--accent); font: 600 0.95rem var(--display); }
+.app-in-app { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; line-height: 1.55; }
+.app-other { margin: 0; font-size: 0.95rem; line-height: 1.55; }
+.app-install { margin: 0 0 1rem; }
+.app-link a { color: inherit; text-underline-offset: 0.2em; }
+.app-link a:hover { color: var(--text); }
+:root[data-app] .app-link { display: none; } /* in the app already */
 /* the graphics level recommended for this device (js/device.js): a line with a button to use it, then
    what it's based on, small; and in the list, a tag by its name */
 .settings-note.advice { color: var(--muted); }

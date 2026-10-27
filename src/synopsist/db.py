@@ -113,17 +113,6 @@ def events_since(conn: sqlite3.Connection, user_id: str, since: str) -> int:
     return conn.execute("SELECT COUNT(*) FROM events WHERE user_id = ? AND received_at >= ?", (user_id, since)).fetchone()[0]
 
 
-def snapshot(path: Path, target: Path) -> None:
-    """A copy of the database as one plain file (VACUUM INTO), consistent even while the server is
-    writing to it: for backups, and for looking at the live data on this computer."""
-    target.unlink(missing_ok=True)
-    conn = sqlite3.connect(path)
-    try:
-        conn.execute("VACUUM INTO ?", (str(target),))
-    finally:
-        conn.close()
-
-
 def to_blob(vector) -> bytes:
     return np.asarray(vector, dtype=np.float32).tobytes()
 

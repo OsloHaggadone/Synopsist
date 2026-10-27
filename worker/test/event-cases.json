@@ -1,0 +1,252 @@
+{
+  "about": "What the listening API stores and what it turns away, one event at a time: run by both app/server.py's tests (tests/test_server.py) and the Worker's (test/worker.test.js), so the two check events the same way. Each case is `base` with `change` and without `remove` (or `item` itself); \"now\", \"now-60d\", \"now+3d\" are times relative to the test's.",
+  "songs": {
+    "song-a": 120.0,
+    "song-b": null
+  },
+  "base": {
+    "user_id": "anon_0123456789abcdef0123456789abcdef",
+    "track_id": "song-a",
+    "event": "play",
+    "position_s": 3.0,
+    "timestamp": "now"
+  },
+  "cases": [
+    {
+      "name": "a play",
+      "change": {},
+      "stored": true
+    },
+    {
+      "name": "a seek, from where to where",
+      "change": {
+        "event": "seek",
+        "from_s": 100.3,
+        "to_s": 18.0
+      },
+      "remove": [
+        "position_s"
+      ],
+      "stored": true
+    },
+    {
+      "name": "the end of the song",
+      "change": {
+        "event": "ended",
+        "position_s": 120.0
+      },
+      "stored": true
+    },
+    {
+      "name": "a little past the end (the player rounds)",
+      "change": {
+        "position_s": 121.5
+      },
+      "stored": true
+    },
+    {
+      "name": "past the end",
+      "change": {
+        "position_s": 122.5
+      },
+      "stored": false
+    },
+    {
+      "name": "a seek past the end",
+      "change": {
+        "event": "seek",
+        "from_s": 10.0,
+        "to_s": 130.0
+      },
+      "remove": [
+        "position_s"
+      ],
+      "stored": false
+    },
+    {
+      "name": "a song whose length isn't known: up to 6 hours",
+      "change": {
+        "track_id": "song-b",
+        "position_s": 21599
+      },
+      "stored": true
+    },
+    {
+      "name": "past 6 hours",
+      "change": {
+        "track_id": "song-b",
+        "position_s": 21601
+      },
+      "stored": false
+    },
+    {
+      "name": "a moment rounded to hundredths",
+      "change": {
+        "position_s": 12.3456
+      },
+      "stored": true,
+      "expect": {
+        "position_s": 12.35
+      }
+    },
+    {
+      "name": "other fields are left out",
+      "change": {
+        "ip": "203.0.113.7",
+        "name": "someone"
+      },
+      "stored": true
+    },
+    {
+      "name": "not an ID the player makes",
+      "change": {
+        "user_id": "anon_123"
+      },
+      "stored": false
+    },
+    {
+      "name": "an email for an ID",
+      "change": {
+        "user_id": "someone@example.com"
+      },
+      "stored": false
+    },
+    {
+      "name": "capital letters in the ID",
+      "change": {
+        "user_id": "anon_0123456789ABCDEF0123456789ABCDEF"
+      },
+      "stored": false
+    },
+    {
+      "name": "a song not on the site",
+      "change": {
+        "track_id": "not-a-song"
+      },
+      "stored": false
+    },
+    {
+      "name": "a song id that isn't text",
+      "change": {
+        "track_id": [
+          "song-a"
+        ]
+      },
+      "stored": false
+    },
+    {
+      "name": "not one of the six events",
+      "change": {
+        "event": "like"
+      },
+      "stored": false
+    },
+    {
+      "name": "an event that isn't text",
+      "change": {
+        "event": [
+          "play"
+        ]
+      },
+      "stored": false
+    },
+    {
+      "name": "a moment before the start",
+      "change": {
+        "position_s": -1
+      },
+      "stored": false
+    },
+    {
+      "name": "true for a moment",
+      "change": {
+        "position_s": true
+      },
+      "stored": false
+    },
+    {
+      "name": "text for a moment",
+      "change": {
+        "position_s": "12"
+      },
+      "stored": false
+    },
+    {
+      "name": "no moment",
+      "change": {
+        "position_s": null
+      },
+      "stored": false
+    },
+    {
+      "name": "the moment left out",
+      "remove": [
+        "position_s"
+      ],
+      "stored": false
+    },
+    {
+      "name": "a seek with one end",
+      "change": {
+        "event": "seek",
+        "from_s": 10.0
+      },
+      "remove": [
+        "position_s"
+      ],
+      "stored": false
+    },
+    {
+      "name": "a huge number",
+      "change": {
+        "position_s": 1e400
+      },
+      "stored": false
+    },
+    {
+      "name": "a huge whole number",
+      "change": {
+        "position_s": 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      },
+      "stored": false
+    },
+    {
+      "name": "a time without a time zone",
+      "change": {
+        "timestamp": "2026-10-05T21:14:03"
+      },
+      "stored": false
+    },
+    {
+      "name": "not a time",
+      "change": {
+        "timestamp": "yesterday"
+      },
+      "stored": false
+    },
+    {
+      "name": "too long ago",
+      "change": {
+        "timestamp": "now-60d"
+      },
+      "stored": false
+    },
+    {
+      "name": "too far ahead",
+      "change": {
+        "timestamp": "now+3d"
+      },
+      "stored": false
+    },
+    {
+      "name": "not an event at all",
+      "item": "play",
+      "stored": false
+    },
+    {
+      "name": "nothing",
+      "stored": false,
+      "item": null
+    }
+  ]
+}

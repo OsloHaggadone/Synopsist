@@ -1,6 +1,0 @@
-# Only what the API needs goes up to the host (Dockerfile): no songs, models, data, or .venv
-*
-!requirements-server.txt
-!app
-!src
-**/__pycache__

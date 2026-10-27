@@ -2,9 +2,10 @@
 // Song titles, albums, track order, and per-song store links live in data/catalog.csv.
 
 export const SITE = {
-  // Where the player sends listening events (app/server.py's POST /events) once that runs on a server
-  // of its own (ROADMAP, Phase 4), e.g. "https://your-api.example.com/events". Leave it empty until
-  // then: python app/server.py tells the page itself, and GitHub Pages has no API, so nothing is sent.
+  // Where the published site sends listening events: the listening API on Cloudflare (worker/), as
+  // "https://synopsist-events.<your-subdomain>.workers.dev/events" once it's deployed (README.md,
+  // "Running the listening API online"). Empty, nothing is sent; python app/server.py on this
+  // computer tells the page its own address instead.
   eventsUrl: "",
 
   artist: "Oslo Haggadone",

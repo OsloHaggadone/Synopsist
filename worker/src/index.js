@@ -83,19 +83,22 @@ function withinTheDay(perUser) {
 }
 
 // The songs on the website and their lengths (track id -> seconds, or null), from its catalog.json:
-// read again every 10 minutes, keeping what was read last when it can't be reached. SONGS (the same
-// JSON) stands in for it in the tests.
+// read again every 10 minutes, keeping what was read last when it can't be reached. A song it
+// doesn't know has it read again at once (`fresh`, past every cache), at most once a minute, so a
+// song just published counts from its first plays (a release brings the most). SONGS (the same
+// JSON) stands in for it in some tests.
 function songMap(data) {
   return new Map(data.tracks.map((track) => [track.id, track.duration ?? null]));
 }
 
-async function knownSongs(env) {
+async function knownSongs(env, fresh = false) {
   if (env.SONGS) return songMap(JSON.parse(env.SONGS));
   const now = Date.now();
-  if (now - catalog.readAt >= (catalog.songs ? CATALOG_EVERY_MS : 30_000)) {
+  if (now - catalog.readAt >= (fresh ? 60_000 : catalog.songs ? CATALOG_EVERY_MS : 30_000)) {
     catalog.readAt = now;
     try {
-      const response = await fetch(env.CATALOG_URL, { cf: { cacheTtl: 600, cacheEverything: true } });
+      const response = await fetch(fresh ? `${env.CATALOG_URL}?fresh=${now}` : env.CATALOG_URL,
+        { cf: { cacheTtl: 60, cacheEverything: true } });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       catalog.songs = songMap(await response.json());
     } catch {
@@ -180,8 +183,11 @@ async function takeEvents(request, url, env) {
   const batch = Array.isArray(payload) ? payload : [payload];
   if (batch.length > MAX_BATCH) return refuse("too many events", 413);
   if (!connectionEvents.allow(address, batch.length)) return refuse("too many events", 429);
-  const songs = await knownSongs(env);
+  let songs = await knownSongs(env);
   if (!songs) return refuse("can't check the songs right now", 503); // the player tries again later
+  if (batch.some((item) => typeof item?.track_id === "string" && !songs.has(item.track_id))) {
+    songs = (await knownSongs(env, true)) ?? songs; // published since it was read?
+  }
   const events = batch.map((item) => clean(item, songs)).filter(Boolean);
   const perUser = new Map();
   for (const { user_id: user } of events) perUser.set(user, (perUser.get(user) ?? 0) + 1);

@@ -20,7 +20,7 @@ export const SITE = {
   summary: [
     { title: "Every song, free", text: "Every release, plus unreleased songs. No account, no ads." },
     { title: "Made for listening", text: "In full screen, the light behind the cover follows the music, and each song's details show what's in it, moment by moment." },
-    { title: "The moments you replay", text: "The player notes which parts of each song people replay, so Oslo can see what lands. It's anonymous, and you can turn it off in Settings." },
+    { title: "The moments you replay", text: "The player notes which parts of each song people replay. It's anonymous, and you can turn it off in Settings." },
   ],
 
   // Your most popular songs, most played first (their track ids, from data/catalog.csv), for the

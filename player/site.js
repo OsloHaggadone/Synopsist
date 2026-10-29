@@ -19,8 +19,8 @@ export const SITE = {
   // each. Leave the list empty ([]) to hide them.
   summary: [
     { title: "Every song, free", text: "Every release, plus unreleased songs. No account, no ads." },
-    { title: "Made for listening", text: "In full screen, the light behind the cover follows the music, and each song's details show what's in it, moment by moment." },
-    { title: "The moments you replay", text: "The player notes which parts of each song people replay. It's anonymous, and you can turn it off in Settings." },
+    { title: "For artists and producers", text: "Built with artists and music producers in mind, and open to anyone who enjoys music." },
+    { title: "Playlists from your moments", text: "Synopsist anonymously notes the moments you replay, to build playlists of songs that resonate with your taste." },
   ],
 
   // Your most popular songs, most played first (their track ids, from data/catalog.csv), for the

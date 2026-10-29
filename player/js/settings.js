@@ -25,7 +25,7 @@ export const PALETTES = ["hollow-journey", "hollow-journey-beyond", "planetary-f
 export const THEMES = ["auto", "light", "dark"];
 export const GRAPHICS = ["high", "low", "off"];
 export const EQS = ["flat", "bass-boost", "bass-reduce", "treble-boost", "vocal-boost", "electronic", "rnb", "small-speakers"];
-export const SORTS = ["albums", "popular", "newest", "title", "favorites"];
+export const SORTS = ["albums", "popular", "newest", "title", "artist", "favorites", "playlists"];
 
 const root = document.documentElement;
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");

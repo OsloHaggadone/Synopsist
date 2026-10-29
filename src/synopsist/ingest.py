@@ -15,9 +15,9 @@ import sqlite3
 import unicodedata
 from pathlib import Path
 
-from synopsist.config import CATALOG_CSV, STREAM_DIR
+from synopsist.config import ARTIST, CATALOG_CSV, STREAM_DIR
 
-COLUMNS = ["track_id", "title", "album", "release_date", "file", "spotify_url", "apple_music_url", "amazon_music_url"]
+COLUMNS = ["track_id", "title", "artist", "album", "release_date", "file", "spotify_url", "apple_music_url", "amazon_music_url"]
 COVER_NAMES = {f"{stem}.{ext}" for stem in ("cover", "folder") for ext in ("jpg", "jpeg", "png", "webp")}
 # data/stream/private/: the artist's private songs, for their own copy of the site only
 # (~/OsloHaggadone-Private, outside this repository). Never cataloged here, so never published.
@@ -105,6 +105,8 @@ def sync_catalog(stream_dir: Path = STREAM_DIR, catalog: Path = CATALOG_CSV) -> 
         rows.append(dict.fromkeys(columns, "") | {"track_id": track_id, "title": path.stem,
                                                     "album": path.parent.name, "file": file})
         print(f"Added {track_id}: {file}")
+    for row in rows:  # who each song is by, written out, so it can be changed song by song
+        row["artist"] = (row.get("artist") or "").strip() or ARTIST
 
     rows.sort(key=lambda row: row["album"] or "")  # stable, so the order within an album is kept
     write_catalog(rows, columns, catalog)

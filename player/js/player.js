@@ -354,7 +354,7 @@ export class Player extends EventTarget {
     const album = this.albums.get(track.album);
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title,
-      artist: this.artist,
+      artist: track.artist ?? this.artist,
       album: album?.title ?? "",
       artwork: album?.cover ? [{ src: new URL(album.cover, location.href).href, sizes: "640x640", type: "image/jpeg" }] : [],
     });

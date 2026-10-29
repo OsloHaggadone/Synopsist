@@ -169,3 +169,21 @@ def test_publish_again_changes_nothing_and_cleans_up(library):
     assert len(list((out / "analysis").iterdir())) == 2  # their analysis changed too (no volume change)
     catalog = json.loads((out / "catalog.json").read_text())
     assert all(t["src"].startswith("https://cdn.example/") for t in catalog["tracks"])
+
+
+def test_who_each_song_and_album_is_by(library):
+    conn, stream, out, analysis = library
+    conn.execute("UPDATE tracks SET artist = 'Someone Else' WHERE track_id = 'other'")
+    conn.commit()
+    publish(conn, library=out, stream_dir=stream, audio_base_url="", target_lufs=-14.0, analysis_dir=analysis)
+    catalog = json.loads((out / "catalog.json").read_text())
+    tracks = {t["id"]: t for t in catalog["tracks"]}
+    assert tracks["loud"]["artist"] == "Oslo Haggadone"  # none in the catalog: config.ARTIST
+    assert tracks["other"]["artist"] == "Someone Else"
+    albums = {a["title"]: a for a in catalog["albums"]}
+    assert (albums["A"]["artist"], albums["B"]["artist"]) == ("Oslo Haggadone", "Someone Else")
+    conn.execute("UPDATE tracks SET artist = 'Someone Else' WHERE track_id = 'quiet'")  # album A: two artists now
+    conn.commit()
+    publish(conn, library=out, stream_dir=stream, audio_base_url="", target_lufs=-14.0, analysis_dir=analysis)
+    albums = {a["title"]: a for a in json.loads((out / "catalog.json").read_text())["albums"]}
+    assert albums["A"]["artist"] == "Various artists"

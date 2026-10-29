@@ -25,7 +25,7 @@ import numpy as np
 from PIL import Image
 
 from synopsist import describe, mp3gain, structure
-from synopsist.config import ANALYSIS_DIR, AUDIO_BASE_URL, LIBRARY_DIR, STREAM_DIR, STREAM_LUFS
+from synopsist.config import ANALYSIS_DIR, ARTIST, AUDIO_BASE_URL, LIBRARY_DIR, STREAM_DIR, STREAM_LUFS
 from synopsist.db import from_blob
 from synopsist.ingest import cover_image, slugify
 from synopsist.segment import locate
@@ -271,7 +271,7 @@ def publish(conn: sqlite3.Connection, library: Path = LIBRARY_DIR, stream_dir: P
             analysis_dir: Path = ANALYSIS_DIR) -> dict:
     """Write player/library/ for every analyzed song and return a summary of what was done."""
     rows = [dict(r) for r in conn.execute(
-        """SELECT track_id, title, album, release_date, file, track_no, spotify_url, apple_music_url,
+        """SELECT track_id, title, artist, album, release_date, file, track_no, spotify_url, apple_music_url,
                   amazon_music_url, duration_s, bpm, bpm_confidence, key, scale, key_strength, loudness_lufs,
                   peak_dbfs, onset_rate, file_sha1, embedding
            FROM tracks WHERE analyzed_at IS NOT NULL ORDER BY album, track_no""")]
@@ -307,6 +307,7 @@ def publish(conn: sqlite3.Connection, library: Path = LIBRARY_DIR, stream_dir: P
         tracks.append({
             "id": row["track_id"],
             "title": row["title"],
+            "artist": row["artist"] or ARTIST,
             "album": album_id,
             "track_no": row["track_no"],
             "release_date": row["release_date"] or None,
@@ -327,9 +328,12 @@ def publish(conn: sqlite3.Connection, library: Path = LIBRARY_DIR, stream_dir: P
         cover = cover_image((stream_dir / album_rows[0]["file"]).parent)
         names, colors = _publish_cover(cover, covers_dir, album_id) if cover else ({}, palette[album_id])
         keep.update(names.values())
+        # the album's artist: its songs' one artist, or "Various artists" when they differ
+        artists = {r["artist"] or ARTIST for r in album_rows}
         albums.append({
             "id": album_id,
             "title": album_rows[0]["album"],
+            "artist": artists.pop() if len(artists) == 1 else "Various artists",
             "release_date": date,
             "year": int(date[:4]) if date else None,
             **{field: f"covers/{names[field]}" if names else None for field in COVER_SIZES},

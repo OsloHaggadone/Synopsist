@@ -702,6 +702,17 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 /* an album folded to its heading (its chevron, or its cover or title; the user asked for it, to
    scroll past albums): a search still shows its matches */
 .group-cover, .group-text { cursor: pointer; }
+.artist-group :is(.group-cover, .group-text), .playlist-group :is(.group-cover, .group-text) { cursor: default; }
+/* an artist's heading: their picture as a diamond, like the logo (another artist's first letter) */
+.artist-mark { display: grid; place-items: center; overflow: visible; box-shadow: none; }
+.artist-picture { width: 100%; height: 100%; object-fit: cover; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.artist-letter { display: grid; place-items: center; width: 74%; aspect-ratio: 1; rotate: 45deg; border: 1px solid var(--line-strong); color: var(--muted); font: 650 1.1rem var(--display); }
+/* a playlist: the first song's cover, or a mark while it has none */
+.playlist-mark { display: grid; place-items: center; width: 100%; height: 100%; background: var(--clear); color: var(--faint); }
+.playlist-mark svg { width: 22px; height: 22px; }
+.playlists-head { display: flex; justify-content: flex-end; margin: 0 0 1rem; }
+.playlist-group { margin-bottom: 1.25rem; }
+.playlist-empty { margin: 0.4rem 1rem 0; color: var(--faint); font-size: 0.88rem; }
 .fold svg { transition: rotate 0.2s var(--ease-out), transform 0.2s var(--ease-out); }
 .group.collapsed { margin-bottom: 1.25rem; }
 .group.collapsed .fold svg { rotate: -90deg; }
@@ -764,9 +775,39 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 .heart[aria-pressed="true"] svg { fill: currentColor; }
 .track .heart { opacity: 0; }
 .track:hover .heart, .track:focus-within .heart, .track .heart[aria-pressed="true"] { opacity: 1; }
-.track-more { display: none; } /* (phones only) */
+/* a song's "···" (playlists, downloads, and the rest): always there on phones, on hover here */
+.track-more { opacity: 0; color: var(--faint); transition: opacity 0.2s; }
+.track:hover .track-more, .track:focus-within .track-more, .track-more[aria-expanded="true"] { opacity: 1; }
+/* a downloaded song: a small tick after its title; offline, the songs that aren't are dimmed */
+.track-saved { display: none; flex: none; margin-left: 0.45rem; color: var(--accent); }
+.track-saved svg { width: 15px; height: 15px; vertical-align: -0.2em; }
+.track.saved .track-saved { display: inline-block; }
+body.offline .track:not(.saved) { opacity: 0.4; }
+.icon-button.download[aria-pressed="true"] { color: var(--accent); }
+.icon-button.download.busy { opacity: 0.5; }
 
 /* a song's menu, from the "···" on its row (phones): a plain list like the dropdowns' */
+/* a short question (a playlist's name, or "Delete …?"): a plain box like the menus */
+.ask {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1.25rem 1.25rem 1.1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  color: var(--text);
+  box-shadow: 0 14px 36px var(--shadow);
+}
+.ask::backdrop { background: rgb(2 6 14 / 0.45); }
+.ask-form { display: grid; gap: 0.9rem; margin: 0; }
+.ask-title { margin: 0; font: 650 1.1rem / 1.3 var(--display); }
+.ask-text { margin: -0.3rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.ask-input { width: 100%; min-height: 40px; padding: 0 0.8rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--clear); color: var(--text); font: inherit; font-size: 1rem; outline: 0; }
+.ask-input:focus { border-color: var(--accent); }
+.ask-buttons { display: flex; justify-content: flex-end; gap: 0.6rem; }
+.downloads-status { margin: 0 0 0.8rem; font-size: 0.92rem; }
+.downloads-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.downloads-actions .btn:disabled { opacity: 0.45; }
+
 .song-menu {
   position: fixed;
   z-index: 61; /* over the player bar */
@@ -1685,7 +1726,7 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
   .track { min-height: 52px; padding-right: 0.2rem; }
   .track-actions, .track-streams, .track .rating, .track-time { display: none; }
   .track .heart:not([aria-pressed="true"]) { display: none; }
-  .track-more { display: grid; color: var(--faint); }
+  .track-more { display: grid; opacity: 1; color: var(--faint); }
   .track-main { gap: 0.75rem; padding: 0.75rem 0.3rem; }
   .track-title { white-space: normal; }
   .track-name { display: -webkit-box; overflow: hidden; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; } /* (a long title on two lines) */

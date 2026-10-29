@@ -12,6 +12,10 @@ import { loadAnalysis } from "./analysis.js";
 import { markMoment, renderDetails } from "./details.js";
 import { aboutDevice, countFrames, frameRates, recommendation } from "./device.js";
 import { clock, el, icon, replay, restart, setIcon } from "./dom.js";
+import {
+  download, downloadedIds, downloadsSupported, isDownloaded, isDownloading, onDownloadsChange, removeDownloads, setUpDownloads,
+  storageUsed,
+} from "./downloads.js";
 import { dropdown } from "./dropdown.js";
 import { songEffects } from "./effects.js";
 import { equalize } from "./eq.js";
@@ -20,6 +24,9 @@ import { liveEq } from "./liveeq.js";
 import { isFavorite, onMarksChange, rate, ratingOf, toggleFavorite } from "./marks.js";
 import { loadNotes } from "./notes.js";
 import { Player } from "./player.js";
+import {
+  addToPlaylist, createPlaylist, deletePlaylist, onPlaylistsChange, playlists, removeFromPlaylist, renamePlaylist,
+} from "./playlists.js";
 import {
   enhanceSetting, eqSetting, fadeSetting, graphics, graphicsSetting, isCollapsed, liveEqSetting, motionReduced,
   onSettingsChange, paletteSetting, ratingsSetting, setCollapsed, setEnhance, setEq, setFade, setGraphics, setLiveEq,
@@ -151,6 +158,7 @@ function showSettings() {
   $("#live-eq-note").hidden = !liveEqSetting() || graphics() !== "off";
   showAdvice();
   showListenerTag();
+  showDownloadsSetting();
 }
 
 // The start of this browser's random ID, once it has one, so a listener can find their own
@@ -220,6 +228,14 @@ function wireSettings() {
   onSettingsChange(showSettings);
   showSettings();
   wireSharing();
+  $("#downloads-group").hidden = !downloadsSupported;
+  $("#download-all").addEventListener("click", () => toggleDownload(allIds, "every song"));
+  $("#remove-downloads").addEventListener("click", async () => {
+    if (await ask({ title: "Remove all downloads?", ok: "Remove", text: "The songs still play whenever you're online." })) {
+      removeDownloads(downloadedIds());
+    }
+  });
+  $("#ask-cancel").addEventListener("click", () => $("#ask").close("cancel"));
   $("#app-install").addEventListener("click", async () => {
     if (!installPrompt) return;
     installPrompt.prompt();
@@ -306,6 +322,7 @@ function showView(firstLoad) {
 // or a section.
 function goTo(hash, scroll) {
   if (hash.startsWith("album-") && sortSetting() !== "albums") setSort("albums"); // its heading is only there
+  if (hash.startsWith("song-") && sortSetting() === "playlists") setSort("albums"); // (a playlist's rows have no ids)
   const target = document.getElementById(hash);
   if (target?.closest("#albums [hidden]")) {
     $("#search").value = ""; // the search was hiding it
@@ -381,7 +398,7 @@ function releaseKind(album, songs, seconds) {
 function renderGroup(album) {
   const list = album.tracks.map((id) => tracks.get(id));
   const total = list.reduce((sum, track) => sum + track.duration, 0);
-  const about = [releaseKind(album, list.length, total), album.year, plural(list.length, "song"), totalTime(total)];
+  const about = [album.artist, releaseKind(album, list.length, total), album.year, plural(list.length, "song"), totalTime(total)];
   const folded = isCollapsed(album.id);
   return el("section", { class: folded ? "group collapsed" : "group", id: `album-${album.id}`, dataset: { album: album.id }, "aria-labelledby": `album-title-${album.id}` },
     el("div", { class: "group-head" },
@@ -392,6 +409,7 @@ function renderGroup(album) {
       el("div", { class: "group-actions" },
         el("button", { class: "icon-button small", onclick: () => playAlbum(album, false), "aria-label": `Play ${album.title}`, title: "Play" }, icon("play")),
         el("button", { class: "icon-button small", onclick: () => playAlbum(album, true), "aria-label": `Shuffle ${album.title}`, title: "Shuffle" }, icon("shuffle")),
+        downloadButton(album.tracks, album.title),
         el("button", {
           class: "icon-button small fold", onclick: () => fold(album.id), "aria-expanded": String(!folded),
           "aria-controls": `songs-${album.id}`, "aria-label": `${album.title}’s songs`, title: folded ? "Show the songs" : "Fold the album",
@@ -411,21 +429,23 @@ function fold(albumId, folded = !isCollapsed(albumId)) {
   button.title = folded ? "Show the songs" : "Fold the album";
 }
 
-// A song's row, numbered; clicking it plays `list` ({ids, label}) from it. In one list of all the
-// songs, each row also names its album.
-function renderTrack(track, number, list, withAlbum = false) {
+// A song's row, numbered; clicking it plays `list` ({ids, label}, and `playlist` for one of the
+// listener's) from it. In one list of all the songs, each row also names its artist and album
+// (`note`). A song can be in several playlists, so their rows don't take its id (song-…).
+function renderTrack(track, number, list, note = null) {
   const album = albums.get(track.album);
   return el("li", {
-    class: "track",
-    id: `song-${track.id}`,
-    dataset: { id: track.id, search: searchable(`${track.title} ${album.title}`) },
+    class: isDownloaded(track.id) ? "track saved" : "track",
+    id: list.playlist ? null : `song-${track.id}`,
+    dataset: { id: track.id, search: searchable(`${track.title} ${album.title} ${track.artist}`) },
   },
     el("button", { class: "track-main", onclick: () => playFrom(list, track), title: `Play ${track.title}` },
       el("span", { class: "track-no", "aria-hidden": "true" },
         el("span", { class: "num" }, twoDigits(number)),
         el("span", { class: "eq" }, el("i"), el("i"), el("i")),
         icon("play")),
-      el("span", { class: "track-title" }, el("span", { class: "track-name" }, track.title), withAlbum && el("span", { class: "track-album" }, album.title))),
+      el("span", { class: "track-title" }, el("span", { class: "track-name" }, track.title), note && el("span", { class: "track-album" }, note)),
+      el("span", { class: "track-saved", title: "Downloaded" }, icon("downloaded"))),
     el("span", { class: "track-actions" },
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "next"), "aria-label": `Play ${track.title} next`, title: "Play next" }, icon("play-next")),
       el("button", { class: "icon-button small", onclick: () => queueSong(track, "end"), "aria-label": `Add ${track.title} to the queue`, title: "Add to queue" }, icon("add"))),
@@ -436,8 +456,205 @@ function renderTrack(track, number, list, withAlbum = false) {
     // (on phones, where the row has room only for its title: the rest is in this menu)
     el("button", {
       class: "icon-button small track-more", "aria-label": `More for ${track.title}`, "aria-haspopup": "menu", "aria-expanded": "false",
-      onclick: (event) => openMenu(event.currentTarget, track),
+      onclick: (event) => openMenu(event.currentTarget, track, list),
     }, icon("more")));
+}
+
+const songNote = (track) => `${track.artist} · ${albums.get(track.album).title}`;
+
+// --- artists, playlists, downloads ------------------------------------------------------------
+
+// Sorted by artist: each artist's songs under their name (their picture for the site's own artist),
+// album by album
+function renderArtists() {
+  const byArtist = new Map();
+  for (const id of allIds) {
+    const artist = tracks.get(id).artist;
+    byArtist.set(artist, [...(byArtist.get(artist) ?? []), id]);
+  }
+  return [...byArtist].sort(([a], [b]) => byTitle.compare(a, b)).map(([artist, ids]) => {
+    const list = { ids, label: artist };
+    const songs = ids.map((id) => tracks.get(id));
+    const total = songs.reduce((sum, track) => sum + track.duration, 0);
+    const mark = artist === SITE.artist
+      ? el("img", { class: "artist-picture", src: SITE.logo, alt: "", width: "64", height: "64" })
+      : el("span", { class: "artist-letter" }, artist.slice(0, 1));
+    return el("section", { class: "group artist-group", "aria-label": artist },
+      el("div", { class: "group-head" },
+        el("div", { class: "group-cover artist-mark", "aria-hidden": "true" }, mark),
+        el("div", { class: "group-text" },
+          el("h3", { class: "group-title" }, artist),
+          el("p", { class: "group-meta" }, [plural(new Set(songs.map((t) => t.album)).size, "album"), plural(songs.length, "song"), totalTime(total)].join(" · "))),
+        el("div", { class: "group-actions" },
+          el("button", { class: "icon-button small", onclick: () => playIds(ids, artist, false), "aria-label": `Play ${artist}`, title: "Play" }, icon("play")),
+          el("button", { class: "icon-button small", onclick: () => playIds(ids, artist, true), "aria-label": `Shuffle ${artist}`, title: "Shuffle" }, icon("shuffle")),
+          downloadButton(ids, artist))),
+      el("ol", { class: "tracklist" }, ...songs.map((track, i) => renderTrack(track, i + 1, list, albums.get(track.album).title))));
+  });
+}
+
+// The listener's playlists (js/playlists.js), each like an album: its heading (the first song's
+// cover, its name, Play, Shuffle, Download, and a "···" to rename or delete it), then its songs
+function renderPlaylists() {
+  const head = el("div", { class: "playlists-head" },
+    el("button", { class: "btn", onclick: newPlaylist }, icon("add"), el("span", {}, "New playlist")));
+  return [head, ...playlists().map((p) => {
+    const list = { ids: p.tracks.filter((id) => tracks.has(id)), label: p.name, playlist: p.id };
+    const songs = list.ids.map((id) => tracks.get(id));
+    const total = songs.reduce((sum, track) => sum + track.duration, 0);
+    const first = songs[0] && albums.get(songs[0].album);
+    return el("section", { class: "group playlist-group", "aria-labelledby": `playlist-title-${p.id}` },
+      el("div", { class: "group-head" },
+        el("div", { class: "group-cover", "aria-hidden": "true" }, first ? coverArt(first) : el("span", { class: "playlist-mark" }, icon("playlist"))),
+        el("div", { class: "group-text" },
+          el("h3", { class: "group-title", id: `playlist-title-${p.id}` }, p.name),
+          el("p", { class: "group-meta" }, ["Playlist", plural(songs.length, "song"), songs.length && totalTime(total)].filter(Boolean).join(" · "))),
+        el("div", { class: "group-actions" },
+          el("button", { class: "icon-button small", disabled: !songs.length, onclick: () => playIds(list.ids, p.name, false), "aria-label": `Play ${p.name}`, title: "Play" }, icon("play")),
+          el("button", { class: "icon-button small", disabled: !songs.length, onclick: () => playIds(list.ids, p.name, true), "aria-label": `Shuffle ${p.name}`, title: "Shuffle" }, icon("shuffle")),
+          songs.length ? downloadButton(list.ids, p.name) : null,
+          el("button", {
+            class: "icon-button small", "aria-label": `More for ${p.name}`, "aria-haspopup": "menu", "aria-expanded": "false",
+            title: "Rename or delete", onclick: (event) => openPlaylistMenu(event.currentTarget, p),
+          }, icon("more")))),
+      songs.length
+        ? el("ol", { class: "tracklist" }, ...songs.map((track, i) => renderTrack(track, i + 1, list, songNote(track))))
+        : el("p", { class: "playlist-empty" }, "No songs yet: add some from a song's ··· menu."));
+  })];
+}
+
+async function newPlaylist() {
+  const name = await ask({ title: "New playlist", value: "", ok: "Create" });
+  if (!name) return;
+  createPlaylist(name);
+  if (sortSetting() !== "playlists") setSort("playlists");
+  toast(`Made “${name}”`);
+}
+
+// A song's menu, switched to the playlists to add it to
+function choosePlaylist(button, track) {
+  const items = playlists().map((p) => [p.name, p.tracks.includes(track.id) ? "check" : "playlist", () => {
+    toast(addToPlaylist(p.id, track.id) ? `Added to “${p.name}”` : `Already in “${p.name}”`);
+  }]);
+  items.push(["New playlist…", "add", async () => {
+    const name = await ask({ title: "New playlist", value: "", ok: "Create" });
+    if (!name) return;
+    createPlaylist(name, [track.id]);
+    toast(`Added to “${name}”`);
+  }]);
+  showMenu(button, "Add to playlist", items);
+}
+
+function openPlaylistMenu(button, p) {
+  if (menuFor === button) {
+    closeMenu();
+    return;
+  }
+  showMenu(button, p.name, [
+    ["Rename", "edit", async () => {
+      const name = await ask({ title: "Rename playlist", value: p.name, ok: "Rename" });
+      if (name) renamePlaylist(p.id, name);
+    }],
+    ["Delete playlist", "close", async () => {
+      if (await ask({ title: `Delete “${p.name}”?`, ok: "Delete", text: "Its songs stay on the site." })) deletePlaylist(p.id);
+    }],
+  ]);
+}
+
+// A short question in the site's own box (index.html's #ask): a name to type (`value`), or only
+// whether to go ahead. The name (trimmed), true, or null for Cancel.
+function ask({ title, value = null, ok, text = "" }) {
+  const dialog = $("#ask");
+  const input = $("#ask-input");
+  $("#ask-title").textContent = title;
+  $("#ask-text").textContent = text;
+  $("#ask-text").hidden = !text;
+  input.hidden = value === null;
+  input.required = value !== null;
+  input.value = value ?? "";
+  $("#ask-ok").textContent = ok;
+  dialog.returnValue = "";
+  dialog.showModal();
+  if (value !== null) input.select();
+  return new Promise((resolve) => {
+    dialog.addEventListener("close", () => {
+      if (dialog.returnValue !== "ok") resolve(null);
+      else resolve(value === null ? true : input.value.trim() || null);
+    }, { once: true });
+  });
+}
+
+// Download buttons (an album's, an artist's, a playlist's): every song of theirs, or, once they're
+// all downloaded, taking them away again
+function downloadButton(ids, label) {
+  if (!downloadsSupported) return null;
+  return el("button", {
+    class: "icon-button small download", dataset: { download: ids.join(" ") }, "aria-pressed": "false",
+    "aria-label": `Download ${label}`, title: "Download", onclick: () => toggleDownload(ids, label),
+  }, icon("download"));
+}
+
+async function toggleDownload(ids, label) {
+  if (ids.length && ids.every(isDownloaded)) {
+    await removeDownloads(ids);
+    toast(`Removed the download of ${label}`);
+    return;
+  }
+  if (navigator.onLine === false) {
+    toast("You're offline: downloading needs a connection.");
+    return;
+  }
+  const missing = ids.filter((id) => !isDownloaded(id)).length;
+  if (missing > 1) toast(`Downloading ${plural(missing, "song")}…`);
+  const done = await download(ids);
+  toast(done === missing ? `Downloaded ${missing > 1 ? `${label}: ${plural(done, "song")}` : label}, to play offline`
+    : done ? `Downloaded ${done} of ${missing}: the rest once you're online again` : "Couldn't download: check your connection.");
+}
+
+function showDownloads() {
+  for (const row of $$(".track")) row.classList.toggle("saved", isDownloaded(row.dataset.id));
+  for (const button of $$("[data-download]")) {
+    const ids = button.dataset.download.split(" ").filter(Boolean);
+    const all = ids.length > 0 && ids.every(isDownloaded);
+    const busy = ids.some(isDownloading);
+    button.setAttribute("aria-pressed", String(all));
+    button.classList.toggle("busy", busy);
+    button.title = all ? "Downloaded: press to remove" : busy ? "Downloading…" : "Download";
+    setIcon(button, all ? "downloaded" : "download");
+  }
+  showDownloadsSetting();
+}
+
+// Settings → Downloads: how many, and what they take
+async function showDownloadsSetting() {
+  if (!downloadsSupported || !tracks) return;
+  const n = downloadedIds().filter((id) => tracks.has(id)).length;
+  const busy = allIds.filter(isDownloading).length;
+  const text = (n ? `${n} of ${plural(allIds.length, "song")} downloaded` : "No songs downloaded yet") + (busy ? `, ${busy} on the way` : "");
+  $("#downloads-status").textContent = `${text}.`;
+  $("#download-all").disabled = n === allIds.length || busy > 0;
+  $("#remove-downloads").disabled = n === 0;
+  const used = n ? await storageUsed() : null;
+  if (used) $("#downloads-status").textContent = `${text}, about ${Math.max(1, Math.round(used / 1e6))} MB kept in this browser.`;
+}
+
+// Without a connection only the downloaded songs play: the others are dimmed, and left out of what plays
+const offline = () => downloadsSupported && navigator.onLine === false;
+const playable = (ids) => (offline() ? ids.filter(isDownloaded) : ids);
+const NOTHING_OFFLINE = "You're offline, and none of these are downloaded.";
+
+function showConnection() {
+  document.body.classList.toggle("offline", offline());
+}
+
+function playIds(ids, label, shuffle) {
+  const list = playable(ids);
+  if (!list.length) {
+    toast(NOTHING_OFFLINE);
+    return;
+  }
+  if (shuffle !== player.shuffle) player.setShuffle(shuffle);
+  player.playList(list, { label });
 }
 
 // A song's streams on its row, when known: a plain number, with its unit for screen readers and on
@@ -454,7 +671,10 @@ const albumList = (album) => ({ ids: album.tracks, label: album.title });
 // Every song in the order chosen with the dropdown beside the search: by album, the way the page
 // has always listed them (releases newest first, each in its own order); by popularity (site.js's
 // ranking first, the rest after, in that order); by release date, newest first; or by title.
-const SORT_LABELS = { albums: "all songs", popular: "Most popular", newest: "the newest songs", title: "all songs, A–Z", favorites: "your favorites" };
+const SORT_LABELS = {
+  albums: "all songs", popular: "Most popular", newest: "the newest songs", title: "all songs, A–Z", artist: "all songs, by artist",
+  favorites: "your favorites", playlists: "your playlists",
+};
 const byTitle = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 function sortedSongs(order) {
@@ -467,7 +687,9 @@ function sortedSongs(order) {
     return [...allIds].sort((a, b) => released(b).localeCompare(released(a))); // (a release keeps its order)
   }
   if (order === "title") return [...allIds].sort((a, b) => byTitle.compare(tracks.get(a).title, tracks.get(b).title));
+  if (order === "artist") return [...allIds].sort((a, b) => byTitle.compare(tracks.get(a).artist, tracks.get(b).artist)); // (each artist's in album order)
   if (order === "favorites") return allIds.filter(isFavorite); // just the hearted ones, in the albums' order
+  if (order === "playlists") return [...new Set(playlists().flatMap((p) => p.tracks))].filter((id) => tracks.has(id)); // every playlist's, in turn
   return allIds;
 }
 
@@ -477,12 +699,17 @@ function renderSongs() {
   const order = sortSetting();
   if (order === "albums") {
     $("#albums").replaceChildren(...[...albums.values()].map(renderGroup));
+  } else if (order === "artist") {
+    $("#albums").replaceChildren(...renderArtists());
+  } else if (order === "playlists") {
+    $("#albums").replaceChildren(...renderPlaylists());
   } else {
     const list = { ids: sortedSongs(order), label: SORT_LABELS[order] };
     $("#albums").replaceChildren(el("section", { class: "group all-songs", "aria-label": "Songs" },
-      el("ol", { class: "tracklist" }, ...list.ids.map((id, i) => renderTrack(tracks.get(id), i + 1, list, true)))));
+      el("ol", { class: "tracklist" }, ...list.ids.map((id, i) => renderTrack(tracks.get(id), i + 1, list, songNote(tracks.get(id)))))));
   }
   $("#no-favorites").hidden = order !== "favorites" || allIds.some(isFavorite);
+  $("#no-playlists").hidden = order !== "playlists" || playlists().length > 0;
   filterSongs();
   markCurrent();
 }
@@ -505,15 +732,16 @@ function filterSongs() {
   let shown = 0;
   for (const group of $$(".group")) {
     let visible = 0;
-    for (const row of group.querySelectorAll(".track")) {
+    const rows = group.querySelectorAll(".track");
+    for (const row of rows) {
       row.hidden = Boolean(q) && !row.dataset.search.includes(q);
       visible += !row.hidden;
     }
-    group.hidden = visible === 0;
+    group.hidden = visible === 0 && (Boolean(q) || rows.length > 0); // (an empty playlist stays, unless searching)
     shown += visible;
   }
   $("#albums").classList.toggle("searching", Boolean(q)); // a folded album shows its matches too
-  $("#no-results").hidden = shown > 0 || !$("#no-favorites").hidden;
+  $("#no-results").hidden = shown > 0 || !$("#no-favorites").hidden || !$("#no-playlists").hidden || sortSetting() === "playlists" && !q;
 }
 
 // --- the song in focus: the one playing (pointing at others in the list leaves it be) ----------
@@ -536,7 +764,7 @@ function setFocus(id) {
     }
     $("#focus-title").textContent = track.title;
     // its album and the day it came out; its length, tempo, key, and streams (when site.js has them)
-    $("#focus-album").textContent = [album.title, showDate(track.release_date ?? album.release_date) ?? "Unreleased"].join(" · ");
+    $("#focus-album").textContent = [track.artist, album.title, showDate(track.release_date ?? album.release_date) ?? "Unreleased"].join(" · ");
     const streams = streamsOf(id);
     $("#focus-meta").textContent = [clock(track.duration), track.bpm && `${track.bpm} BPM`, track.key, streams !== null && streamCount(streams)]
       .filter(Boolean).join(" · ");
@@ -623,27 +851,38 @@ function showMarks(id, what) {
 
 let menuFor = null; // the "···" whose menu is open
 
-function openMenu(button, track) {
+function openMenu(button, track, list = null) {
   if (menuFor === button) {
     closeMenu();
     return;
   }
-  closeMenu();
   const favorite = isFavorite(track.id);
   const items = [
     ["Play next", "play-next", () => queueSong(track, "next")],
     ["Add to queue", "add", () => queueSong(track, "end")],
-    [favorite ? "Remove from favorites" : "Add to favorites", "heart", () => toggleFavorite(track.id)],
+    ["Add to playlist", "playlist", () => choosePlaylist(button, track)],
+    list?.playlist && ["Remove from this playlist", "close", () => removeFromPlaylist(list.playlist, track.id)],
+    [favorite ? "Remove from favorites" : "Add to favorites", "heart", () => toggleFavorite(track.id), !favorite],
+    downloadsSupported && (isDownloaded(track.id)
+      ? ["Remove download", "downloaded", () => removeDownloads([track.id])]
+      : ["Download", "download", () => toggleDownload([track.id], `“${track.title}”`)]),
     ["Song details", "details", () => openDetails(track.id)],
     ["Copy link", "link", () => copyLink(track)],
   ];
+  // (with Star ratings on: the row has no room for them)
+  showMenu(button, track.title, items, ratingsSetting() ? [el("div", { class: "menu-rating" }, ratingStars(track))] : []);
+}
+
+// A menu beside its button: [label, icon, action, outline?] for each item, and anything after them
+function showMenu(button, label, items, after = []) {
+  closeMenu();
   const menu = $("#song-menu");
-  menu.setAttribute("aria-label", track.title);
-  menu.replaceChildren(...items.map(([label, name, action]) => {
+  menu.setAttribute("aria-label", label);
+  menu.replaceChildren(...items.filter(Boolean).map(([text, name, action, outline]) => {
     const symbol = icon(name);
-    if (name === "heart" && !favorite) symbol.style.fill = "none"; // (an outline until it's a favorite)
-    return el("button", { class: "menu-item", role: "menuitem", onclick: () => { closeMenu(); action(); } }, symbol, el("span", {}, label));
-  }), ...(ratingsSetting() ? [el("div", { class: "menu-rating" }, ratingStars(track))] : [])); // (with Star ratings on: the row has no room for them)
+    if (outline) symbol.style.fill = "none"; // (the heart, until the song is a favorite)
+    return el("button", { class: "menu-item", role: "menuitem", onclick: () => { closeMenu(); action(); } }, symbol, el("span", {}, text));
+  }), ...after);
   menu.hidden = false;
   // beside the button: under it, or over it where the player bar would cover it
   const box = button.getBoundingClientRect();
@@ -677,17 +916,16 @@ async function copyLink(track) {
 // --- choosing what plays ---------------------------------------------------------------------
 
 function playAlbum(album, shuffle) {
-  if (shuffle !== player.shuffle) player.setShuffle(shuffle);
-  player.playList(album.tracks, { label: album.title });
+  playIds(album.tracks, album.title, shuffle);
 }
 
 // Every song, in the list's order.
 function playEverything(shuffle) {
   if (shuffle !== player.shuffle) player.setShuffle(shuffle);
   const order = sortSetting();
-  const ids = sortedSongs(order);
+  const ids = playable(sortedSongs(order));
   if (ids.length === 0) {
-    toast("No favorites yet: press the heart beside a song.");
+    toast(offline() ? NOTHING_OFFLINE : order === "playlists" ? "No songs in your playlists yet." : "No favorites yet: press the heart beside a song.");
     return;
   }
   player.playList(ids, { label: SORT_LABELS[order] });
@@ -699,10 +937,18 @@ function playFrom(list, track) {
     player.toggle(); // clicking the song that's playing pauses or resumes it
     return;
   }
-  player.playList(list.ids, { start: track.id, label: list.label });
+  if (offline() && !isDownloaded(track.id)) {
+    toast(`“${track.title}” isn't downloaded: it plays once you're online.`);
+    return;
+  }
+  player.playList(playable(list.ids), { start: track.id, label: list.label });
 }
 
 function queueSong(track, where) {
+  if (offline() && !isDownloaded(track.id)) {
+    toast(`“${track.title}” isn't downloaded: it plays once you're online.`);
+    return;
+  }
   if (where === "next") player.playNext(track.id);
   else player.addToQueue(track.id);
   toast(where === "next" ? `“${track.title}” will play next` : `Added “${track.title}” to the queue`);
@@ -723,7 +969,7 @@ function showTrack() {
   markCurrent();
   document.body.classList.toggle("has-track", Boolean(track));
   $("#now-title").textContent = track ? track.title : "Pick a song to start";
-  $("#now-album").textContent = album ? album.title : "";
+  $("#now-album").textContent = album ? `${track.artist} · ${album.title}` : "";
   const nowCover = $("#now-cover");
   if (nowCover.dataset.album !== (album?.id ?? "")) {
     nowCover.dataset.album = album?.id ?? "";
@@ -748,7 +994,7 @@ function showTrack() {
 // The song playing is lit in the list.
 function markCurrent() {
   for (const row of $$(".track.current")) row.classList.remove("current");
-  if (player.current) document.getElementById(`song-${player.current.id}`)?.classList.add("current");
+  if (player.current) for (const row of $$(`.track[data-id="${CSS.escape(player.current.id)}"]`)) row.classList.add("current");
 }
 
 // The seek bar's wave: the outline of the song playing, from its analysis.
@@ -778,7 +1024,7 @@ function showState(detail) {
     replay(svg, "pop");
   }
   $("#play").setAttribute("aria-label", playing ? "Pause" : "Play");
-  document.title = playing && track ? `${track.title} · ${SITE.artist}` : SITE.artist;
+  document.title = playing && track ? `${track.title} · ${track.artist}` : SITE.artist;
   showFocusState();
   // In full screen, pressing play or pause shows the controls (they stay while paused). Not one song
   // ending and the next coming on by itself, which pauses and plays too: hidden, they stay hidden, the
@@ -1344,7 +1590,12 @@ function wireControls() {
   player.addEventListener("change", ({ detail }) => {
     if (detail === "track") showTrack();
     if (detail === "volume") showVolume();
-    if (detail === "error" && player.failed) toast(`Couldn't load “${player.failed.title}”. Check your connection and try again.`);
+    if (detail === "error" && player.failed && offline() && !isDownloaded(player.failed.id)) {
+      toast(`Skipped “${player.failed.title}”: it isn't downloaded.`);
+      player.next();
+    } else if (detail === "error" && player.failed) {
+      toast(`Couldn't load “${player.failed.title}”. Check your connection and try again.`);
+    }
     if (["track", "time"].includes(detail)) showTime();
     if (["track", "state", "error"].includes(detail)) showState(detail);
     if (["track", "queue", "mode"].includes(detail)) {
@@ -1450,6 +1701,18 @@ async function main() {
   if (new URLSearchParams(location.search).has("debug")) window.synopsistEq = eq; // for testing
 
   fillSiteText(catalog);
+  onDownloadsChange(showDownloads);
+  onPlaylistsChange(() => sortSetting() === "playlists" && renderSongs());
+  setUpDownloads(catalog.tracks, catalog.albums).then(showDownloads);
+  showConnection();
+  for (const name of ["online", "offline"]) {
+    addEventListener(name, () => {
+      showConnection();
+      if (name === "offline" && downloadsSupported) {
+        toast(downloadedIds().length ? "You're offline: your downloaded songs still play." : "You're offline: songs you download play without a connection.");
+      }
+    });
+  }
   renderSongs();
   showReleases();
   $("#library-status").hidden = true;

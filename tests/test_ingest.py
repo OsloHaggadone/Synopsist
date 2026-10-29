@@ -43,7 +43,7 @@ def test_first_sync(stream, tmp_path, capsys):
         "Album B/夜.mp3": "track",
     }
     assert read(catalog) == rows
-    assert rows[2] == {"track_id": "cafe", "title": "Café", "album": "Album B", "release_date": "",
+    assert rows[2] == {"track_id": "cafe", "title": "Café", "artist": "Oslo Haggadone", "album": "Album B", "release_date": "",
                        "file": "Album B/Café.mp3", "spotify_url": "", "apple_music_url": "", "amazon_music_url": ""}
 
 
@@ -71,7 +71,8 @@ def test_hand_edits_survive_a_spreadsheet_save(stream, tmp_path):
     for row in rows:
         row["notes"] = ""  # a column added by hand
         if row["track_id"] == "cafe":
-            row |= {"title": "Café, Revisited", "release_date": "2023-05-01", "spotify_url": "https://x", "notes": "hi"}
+            row |= {"title": "Café, Revisited", "artist": "Oslo Haggadone & Someone", "release_date": "2023-05-01",
+                    "spotify_url": "https://x", "notes": "hi"}
     with catalog.open("w", newline="", encoding="utf-8-sig") as f:  # BOM and CRLF, like Excel
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()
@@ -81,7 +82,8 @@ def test_hand_edits_survive_a_spreadsheet_save(stream, tmp_path):
     rows = sync_catalog(stream, catalog)
     assert [r["track_id"] for r in rows] == ["song-one", "song-one-2", "zeta", "cafe", "loud", "track"]
     cafe = next(r for r in rows if r["track_id"] == "cafe")
-    assert cafe == {"track_id": "cafe", "title": "Café, Revisited", "album": "Album B", "release_date": "2023-05-01",
+    assert cafe == {"track_id": "cafe", "title": "Café, Revisited", "artist": "Oslo Haggadone & Someone", "album": "Album B",
+                    "release_date": "2023-05-01",
                     "file": "Album B/Café.mp3", "spotify_url": "https://x", "apple_music_url": "", "amazon_music_url": "",
                     "notes": "hi"}
     assert not catalog.read_bytes().startswith(b"\xef\xbb\xbf")

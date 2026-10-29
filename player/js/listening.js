@@ -27,7 +27,13 @@ const SEND_EVERY_MS = 30_000; // a batch goes this long after its first event (t
                                // 100,000 requests a day: about one every 30 s is 800 hours of listening)
 const SEND_AT = 25; // or as soon as this many are waiting
 const RETRY_MS = 30_000; // after the API couldn't be reached
-const KEEP_AT_MOST = 500; // waiting events (the oldest go first while it can't be reached)
+// Waiting events: about 38 hours of listening without a connection (downloaded songs; past it, the
+// oldest go first), sent a hundred a minute once there's one again (the API takes 120 a minute from
+// a listener, and a request of 64 KB at most), and again later if the API says it's too many
+const KEEP_AT_MOST = 10_000;
+const SEND_AT_MOST = 100;
+const MORE_AFTER_MS = 60_000;
+const LIMITED_MS = 5 * 60_000;
 const SETTLE_MS = 3000; // how long a seek or a pause has to last to be recorded
 const WAITING_KEY = "synopsist.waiting"; // events kept for the next visit
 const DEBUG = new URLSearchParams(location.search).has("debug");
@@ -151,14 +157,17 @@ function queue(record, sending = true) {
   waiting.push(record);
   if (waiting.length > KEEP_AT_MOST) waiting.splice(0, waiting.length - KEEP_AT_MOST);
   if (!sending) return;
+  const offline = navigator.onLine === false || unreachable;
+  if (offline) keep(); // (an app closed without a word keeps them too)
   // the page going away (the player notes where it was): sent now, or never
   if (document.visibilityState === "hidden") send(true);
-  else if (waiting.length >= SEND_AT) send();
+  else if (waiting.length >= SEND_AT && !offline) send();
   else if (!timer) timer = setTimeout(send, SEND_EVERY_MS);
 }
 
-// The waiting events, in one request. As text/plain, so a page may send it to another site without
-// asking first, and a beacon (which outlives the page) can carry it.
+// The waiting events, a hundred at most in one request (more a minute later). As text/plain, so a
+// page may send it to another site without asking first, and a beacon (which outlives the page) can
+// carry it.
 function send(leaving = false) {
   clearTimeout(timer);
   timer = 0;
@@ -166,22 +175,27 @@ function send(leaving = false) {
   if (!waiting.length) return keep();
   // nothing would get through (a beacon can't tell): they wait for the next visit
   if (leaving && (navigator.onLine === false || unreachable)) return keep();
-  const batch = waiting;
-  waiting = [];
+  const batch = waiting.splice(0, SEND_AT_MOST);
   const body = JSON.stringify(batch);
   if (leaving && navigator.sendBeacon?.(endpoint, new Blob([body], { type: "text/plain" }))) return keep();
+  const again = (after) => {
+    if (!sharingEnabled()) return;
+    waiting = [...batch, ...waiting].slice(-KEEP_AT_MOST); // tried again later, in order
+    keep();
+    clearTimeout(timer);
+    timer = setTimeout(send, after);
+  };
   fetch(endpoint, { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: body.length < 60_000 })
     .then((response) => {
-      if (response.status >= 500) throw new Error(`HTTP ${response.status}`); // (a 4xx won't get better)
+      if (response.status >= 500) throw new Error(`HTTP ${response.status}`);
       unreachable = false;
-      keep();
+      if (response.status === 429) return again(LIMITED_MS); // too many at once: later
+      keep(); // (any other 4xx won't get better)
+      if (waiting.length) timer ||= setTimeout(send, MORE_AFTER_MS);
     })
     .catch(() => {
       unreachable = true;
-      if (!sharingEnabled()) return;
-      waiting = [...batch, ...waiting].slice(-KEEP_AT_MOST); // tried again later, in order
-      keep();
-      timer ||= setTimeout(send, RETRY_MS);
+      again(RETRY_MS);
     });
 }
 

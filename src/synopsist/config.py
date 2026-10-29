@@ -23,6 +23,10 @@ STREAM_LUFS = -14.0
 # bucket's public URL here, ending in a slash.
 AUDIO_BASE_URL = ""
 
+# Who a song is by when its row in data/catalog.csv doesn't say (the artist column, filled in with
+# this for every song; change a song's own there, for a collaboration, or another artist's songs).
+ARTIST = "Oslo Haggadone"
+
 # Your artist page on Apple Music. scripts/import_apple_music.py reads Apple's public catalog for it
 # to fill in release dates, song links, track order, and album covers. The country is the store
 # the song links point to.

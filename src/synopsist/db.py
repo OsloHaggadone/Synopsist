@@ -76,7 +76,7 @@ TRACK_FEATURES = ["duration_s", "bpm", "bpm_confidence", "key", "scale", "key_st
 # missing, so a schema change never means deleting the database (and its listening events).
 ADDED_COLUMNS = {
     "tracks": {"track_no": "INTEGER", "spotify_url": "TEXT", "apple_music_url": "TEXT", "amazon_music_url": "TEXT",
-               "peak_dbfs": "REAL"},
+               "peak_dbfs": "REAL", "artist": "TEXT"},
 }
 SEGMENT_COLUMNS = ["track_id", "idx", "start_s", "end_s", "bpm", "key", "scale", "key_strength",
                    "onset_rate", "loudness_lufs", "embedding"]

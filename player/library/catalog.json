@@ -3,6 +3,7 @@
   {
    "id": "eternal-synopsis-single",
    "title": "Eternal Synopsis Single",
+   "artist": "Oslo Haggadone",
    "release_date": "2026-04-30",
    "year": 2026,
    "cover": "covers/eternal-synopsis-single-640.e5137588ed.jpg",
@@ -20,6 +21,7 @@
   {
    "id": "hollow-journey-beyond",
    "title": "Hollow Journey Beyond",
+   "artist": "Oslo Haggadone",
    "release_date": "2024-10-06",
    "year": 2024,
    "cover": "covers/hollow-journey-beyond-640.f8649016a5.jpg",
@@ -48,6 +50,7 @@
   {
    "id": "planetary-fields",
    "title": "Planetary Fields",
+   "artist": "Oslo Haggadone",
    "release_date": "2024-07-07",
    "year": 2024,
    "cover": "covers/planetary-fields-640.b553fd49b4.jpg",
@@ -66,6 +69,7 @@
   {
    "id": "hollow-journey",
    "title": "Hollow Journey",
+   "artist": "Oslo Haggadone",
    "release_date": "2023-10-31",
    "year": 2023,
    "cover": "covers/hollow-journey-640.73c9fff405.jpg",
@@ -94,6 +98,7 @@
   {
    "id": "dread-journey",
    "title": "Dread Journey",
+   "artist": "Oslo Haggadone",
    "release_date": null,
    "year": null,
    "cover": "covers/dread-journey-640.02e6aa2b36.jpg",
@@ -111,6 +116,7 @@
   {
    "id": "hollow-journey-delta-side",
    "title": "Hollow Journey Delta Side",
+   "artist": "Oslo Haggadone",
    "release_date": null,
    "year": null,
    "cover": "covers/hollow-journey-delta-side-640.02e6aa2b36.jpg",
@@ -135,6 +141,7 @@
   {
    "id": "ephemeral-synopsis",
    "title": "Ephemeral Synopsis",
+   "artist": "Oslo Haggadone",
    "album": "dread-journey",
    "track_no": 1,
    "release_date": null,
@@ -150,6 +157,7 @@
   {
    "id": "eternal-synopsis",
    "title": "Eternal Synopsis",
+   "artist": "Oslo Haggadone",
    "album": "eternal-synopsis-single",
    "track_no": 1,
    "release_date": "2026-04-30",
@@ -165,6 +173,7 @@
   {
    "id": "hollow-journey",
    "title": "Hollow Journey",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 1,
    "release_date": "2023-10-31",
@@ -180,6 +189,7 @@
   {
    "id": "electric-space",
    "title": "Electric Space",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 2,
    "release_date": "2023-10-31",
@@ -195,6 +205,7 @@
   {
    "id": "into-space",
    "title": "Into Space",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 3,
    "release_date": "2023-10-31",
@@ -210,6 +221,7 @@
   {
    "id": "space-rain",
    "title": "Space Rain",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 4,
    "release_date": "2023-10-31",
@@ -225,6 +237,7 @@
   {
    "id": "zero-gravity",
    "title": "Zero Gravity",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 5,
    "release_date": "2023-10-31",
@@ -240,6 +253,7 @@
   {
    "id": "negative-space",
    "title": "Negative Space",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 6,
    "release_date": "2023-10-31",
@@ -255,6 +269,7 @@
   {
    "id": "tropical-space-day",
    "title": "Tropical Space (Day)",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 7,
    "release_date": "2023-10-31",
@@ -270,6 +285,7 @@
   {
    "id": "tropical-space-day-extended",
    "title": "Tropical Space (Day) - Extended",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 8,
    "release_date": "2023-10-31",
@@ -285,6 +301,7 @@
   {
    "id": "bad-boy",
    "title": "Bad Boy",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 9,
    "release_date": "2023-10-31",
@@ -300,6 +317,7 @@
   {
    "id": "spacial-awareness",
    "title": "Spacial Awareness",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 10,
    "release_date": "2023-10-31",
@@ -315,6 +333,7 @@
   {
    "id": "delta-gravity-delta-side",
    "title": "Delta Gravity (Delta-Side)",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 11,
    "release_date": "2023-10-31",
@@ -330,6 +349,7 @@
   {
    "id": "hollow-truth",
    "title": "Hollow Truth",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey",
    "track_no": 12,
    "release_date": "2023-10-31",
@@ -345,6 +365,7 @@
   {
    "id": "hollow-journey-beyond",
    "title": "Hollow Journey Beyond",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 1,
    "release_date": "2024-10-06",
@@ -360,6 +381,7 @@
   {
    "id": "volition",
    "title": "Volition",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 2,
    "release_date": "2024-10-06",
@@ -375,6 +397,7 @@
   {
    "id": "crimson-eclipse",
    "title": "Crimson Eclipse",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 3,
    "release_date": "2024-10-06",
@@ -390,6 +413,7 @@
   {
    "id": "impulse",
    "title": "Impulse",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 4,
    "release_date": "2024-10-06",
@@ -405,6 +429,7 @@
   {
    "id": "flowers-about",
    "title": "Flowers About",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 5,
    "release_date": "2024-10-06",
@@ -420,6 +445,7 @@
   {
    "id": "planetary-fields-2024-remastered-version",
    "title": "Planetary Fields (2024 Remastered Version)",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 6,
    "release_date": "2024-10-06",
@@ -435,6 +461,7 @@
   {
    "id": "jiggly-cake",
    "title": "Jiggly Cake",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 7,
    "release_date": "2024-10-06",
@@ -450,6 +477,7 @@
   {
    "id": "glistening-dawn",
    "title": "Glistening Dawn",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 8,
    "release_date": "2024-10-06",
@@ -465,6 +493,7 @@
   {
    "id": "you-know-what-that-means",
    "title": "You know what that means... !",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 9,
    "release_date": "2024-10-06",
@@ -480,6 +509,7 @@
   {
    "id": "facades",
    "title": "Facades",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 10,
    "release_date": "2024-10-06",
@@ -495,6 +525,7 @@
   {
    "id": "journey",
    "title": "Journey",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 11,
    "release_date": "2024-10-06",
@@ -510,6 +541,7 @@
   {
    "id": "dying-light",
    "title": "Dying Light",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-beyond",
    "track_no": 12,
    "release_date": "2024-10-06",
@@ -525,6 +557,7 @@
   {
    "id": "absolute-zero",
    "title": "Absolute Zero",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-delta-side",
    "track_no": 1,
    "release_date": null,
@@ -540,6 +573,7 @@
   {
    "id": "bells",
    "title": "Bells",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-delta-side",
    "track_no": 2,
    "release_date": null,
@@ -555,6 +589,7 @@
   {
    "id": "eating-the-suspicious-green-cookie",
    "title": "Eating the Suspicious Green Cookie",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-delta-side",
    "track_no": 3,
    "release_date": null,
@@ -570,6 +605,7 @@
   {
    "id": "out-of-space",
    "title": "Out of Space",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-delta-side",
    "track_no": 4,
    "release_date": null,
@@ -585,6 +621,7 @@
   {
    "id": "suspicious-green-cookie",
    "title": "Suspicious Green Cookie",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-delta-side",
    "track_no": 5,
    "release_date": null,
@@ -600,6 +637,7 @@
   {
    "id": "nai",
    "title": "nai",
+   "artist": "Oslo Haggadone",
    "album": "hollow-journey-delta-side",
    "track_no": 6,
    "release_date": null,
@@ -615,6 +653,7 @@
   {
    "id": "planetary-fields-final-ver",
    "title": "Planetary Fields (Final Ver.)",
+   "artist": "Oslo Haggadone",
    "album": "planetary-fields",
    "track_no": 1,
    "release_date": "2024-07-07",
@@ -630,6 +669,7 @@
   {
    "id": "planetary-fields-milestone",
    "title": "Planetary Fields (Milestone)",
+   "artist": "Oslo Haggadone",
    "album": "planetary-fields",
    "track_no": 2,
    "release_date": "2024-07-07",

@@ -175,6 +175,11 @@ body {
   font: 400 16px/1.55 var(--font);
   -webkit-font-smoothing: antialiased;
 }
+/* no text is picked out, by dragging, a double click, or Select All, or by pressing and holding on
+   a phone (which pops up no menu either), as in an app or Spotify's site (the user asked, for phones
+   and then for computers); the search box and the playlist name box still can */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+:is(input, textarea) { -webkit-user-select: text; user-select: text; }
 body[data-view="player"], body:is([data-view="settings"], [data-view="app"]).has-track { padding-bottom: calc(var(--bar-h) + 24px); }
 body.visual-open { overflow: hidden; }
 
@@ -778,8 +783,10 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 3.5vw, 3rem); }
 /* a song's "···" (playlists, downloads, and the rest): always there on phones, on hover here */
 .track-more { opacity: 0; color: var(--faint); transition: opacity 0.2s; }
 .track:hover .track-more, .track:focus-within .track-more, .track-more[aria-expanded="true"] { opacity: 1; }
-/* a downloaded song: a small tick after its title; offline, the songs that aren't are dimmed */
-.track-saved { display: none; flex: none; margin-left: 0.45rem; color: var(--accent); }
+/* a downloaded song: a small tick after its title, the accent toned down toward the "···" so it's
+   there to see without standing out like the buttons (the user asked); offline, the songs that
+   aren't are dimmed */
+.track-saved { display: none; flex: none; margin-left: 0.45rem; color: color-mix(in srgb, var(--accent) 55%, var(--faint)); }
 .track-saved svg { width: 15px; height: 15px; vertical-align: -0.2em; }
 .track.saved .track-saved { display: inline-block; }
 body.offline .track:not(.saved) { opacity: 0.4; }
@@ -1634,10 +1641,6 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 :root[data-ios] .scenery::after { content: ""; position: absolute; inset: 0 0 auto; height: 4rem; background: linear-gradient(var(--bg), transparent); pointer-events: none; }
 /* The top bar is fixed: when the page bounces it stays under the clock, the page moving beneath it
    (the user wanted the bounce, not the bar coming away from the clock). */
-/* Pressing and holding picks out no text and pops up no menu, as in an app (the user asked); the
-   search box still can */
-:root[data-ios] body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-:root[data-ios] :is(input, textarea) { -webkit-user-select: text; user-select: text; }
 :root[data-ios] .topbar { position: fixed; inset: 0 0 auto; }
 :root[data-ios] .player-page { padding-top: calc(64px + env(safe-area-inset-top)); }
 /* Full screen: iOS draws only the page behind the clock, what's scrolled up under it, never what's

@@ -4,14 +4,10 @@
 // (js/listening.js) and is sent once there's a connection again. Downloading also keeps the site's
 // own files, so the app opens offline. A song rebuilt since it was downloaded is downloaded again,
 // in its new copy, the next time the site opens online.
-//
-// The private copy keeps every song offline its own way (its build adds a meta tag saying so), so
-// this stands aside there: no download buttons, and its own offline store, not this one.
 
 const SITE = "synopsist-site"; // (sw.js's)
 const SONGS = "synopsist-songs";
-export const downloadsSupported = "serviceWorker" in navigator && "caches" in window && window.isSecureContext
-  && !document.querySelector('meta[name="synopsist-downloads"]');
+export const downloadsSupported = "serviceWorker" in navigator && "caches" in window && window.isSecureContext;
 const saved = new Set(); // the downloaded songs' ids
 const fetching = new Set(); // and the ones on their way
 const listeners = new Set();

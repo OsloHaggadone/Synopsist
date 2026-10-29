@@ -19,8 +19,8 @@ from synopsist.config import ARTIST, CATALOG_CSV, STREAM_DIR
 
 COLUMNS = ["track_id", "title", "artist", "album", "release_date", "file", "spotify_url", "apple_music_url", "amazon_music_url"]
 COVER_NAMES = {f"{stem}.{ext}" for stem in ("cover", "folder") for ext in ("jpg", "jpeg", "png", "webp")}
-# data/stream/private/: the artist's private songs, for their own copy of the site only
-# (~/OsloHaggadone-Private, outside this repository). Never cataloged here, so never published.
+# data/stream/private/: the artist's private songs, some of them other artists': kept off the site.
+# Never cataloged here, so never published.
 PRIVATE_FOLDER = "private"
 
 

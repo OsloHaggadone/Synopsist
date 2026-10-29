@@ -1,7 +1,6 @@
-"""Draw the Home Screen icon of the public iPhone app (player/images/app-icon-*.png, named in
+"""Draw the Home Screen icon of the iPhone app (player/images/app-icon-*.png, named in
 player/manifest.webmanifest and index.html): the artist's profile picture as a big diamond, nearly
-corner to corner, with a thin blue frame, on the night's dark blue. (The private copy draws its own,
-on the light side's pale blue, so the two apps can sit side by side on the Home Screen.)
+corner to corner, with a thin blue frame, on the night's dark blue.
 
 Run it again after changing player/images/profile.jpg:  python scripts/make_app_icons.py
 """

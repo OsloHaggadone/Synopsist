@@ -16,8 +16,7 @@ __pycache__/
 /data/*
 !/data/catalog.csv
 
-# The artist's private songs: for their own copy of the site only (~/OsloHaggadone-Private, outside
-# this repository); the build skips them too (ingest.PRIVATE_FOLDER)
+# The artist's private songs, never published: the build skips them too (ingest.PRIVATE_FOLDER)
 /data/stream/private/
 
 # Essentia model files
@@ -44,3 +43,6 @@ __pycache__/
 /worker/node_modules/
 /worker/.wrangler/
 /worker/.dev.vars
+
+# Claude Code's settings: kept on this computer, not on GitHub
+.claude/

@@ -7,8 +7,8 @@
 // the ID and whatever hadn't been sent yet (the privacy note promises this). The API is the page's
 // own server when it has one (app/server.py on this computer says so in a meta tag), or
 // SITE.eventsUrl (site.js): the Worker on Cloudflare (worker/) for the published site. With neither
-// (the private copy, which empties eventsUrl), nothing is sent and no ID is made. With ?debug in the
-// URL, events are printed too.
+// (an empty eventsUrl), nothing is sent and no ID is made. With ?debug in the URL, events are
+// printed too.
 //
 // The first part of the self-check (ROADMAP, Phase 4): a seek or a pause is only recorded once it has
 // lasted a few seconds (SETTLE_MS). Seeks closer together than that are one jump, from where the first

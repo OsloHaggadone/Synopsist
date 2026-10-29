@@ -1,4 +1,4 @@
-// Synopsist's offline store (the public site's; js/downloads.js fills it): once the site has been
+// Synopsist's offline store (js/downloads.js fills it): once the site has been
 // opened it opens without a connection too, and the songs the listener downloads play offline.
 //
 // - The site's own files (the page, its code, fonts, images, the song list): from the network
@@ -10,8 +10,6 @@
 //   left to the browser, streamed as it is without this.
 // The listening events go to the API on another site, untouched here: when they can't be sent,
 // js/listening.js keeps them until they can.
-//
-// The private copy has a store of its own (its sw.js, written over this one there).
 
 const SITE = "synopsist-site";
 const SONGS = "synopsist-songs";

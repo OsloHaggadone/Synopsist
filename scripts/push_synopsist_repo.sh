@@ -2,7 +2,7 @@
 # Copy Synopsist to its own repository, github.com/OsloHaggadone/Synopsist: this folder's history only
 # (git subtree split), so the project shows on the profile by itself. The site is still published from
 # the portfolio's repository (OsloHaggadone/oslohaggadone.github.io); GitHub Pages stays off in the
-# Synopsist one, or it would take over oslohaggadone.github.io/Synopsist/. Run it after pushing main:
+# Synopsist one, or it would take over oslohaggadone.com/Synopsist/. Run it after pushing main:
 #   sh Synopsist/scripts/push_synopsist_repo.sh      (from ~/OsloHaggadone)
 # Its key (~/.ssh/synopsist_repo) is a deploy key that opens that repository only.
 set -e

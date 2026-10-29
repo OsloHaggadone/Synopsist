@@ -4,7 +4,7 @@ Official music website and audio analysis project. Synopsist reads personal mome
 
 > Built in mind for artists and music producers, though anyone who enjoys music can still use Synopsist.
 
-Live at: oslohaggadone.github.io/Synopsist/
+Live at: oslohaggadone.com/Synopsist/
 This project lives in the `Synopsist/` folder of
 [OsloHaggadone/oslohaggadone.github.io](https://github.com/OsloHaggadone/oslohaggadone.github.io)
 

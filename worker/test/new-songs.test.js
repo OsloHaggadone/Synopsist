@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 import worker from "../src/index.js";
 
-const SITE = "https://oslohaggadone.github.io";
+const SITE = "https://oslohaggadone.com";
 const CATALOG_URL = "https://site.test/Synopsist/library/catalog.json";
 const USER = "anon_" + "ab".repeat(16);
 

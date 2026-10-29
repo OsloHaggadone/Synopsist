@@ -64,7 +64,10 @@ EVENTS_PER_DAY = 6000  # in a UTC day (listening around the clock is 5,760 posit
 # One connection, which a household or a dorm may share: a page sends a request every 30 s or so
 REQUESTS_PER_MINUTE = 60
 CONNECTION_EVENTS_PER_MINUTE = 300
-ORIGINS = [origin for origin in os.environ.get("SYNOPSIST_ORIGINS", "https://oslohaggadone.github.io").split(",") if origin]
+# The published site's pages, which may send from their own address: its domain, and the old github.io
+# address (as the Worker's ORIGINS)
+ORIGINS = [origin for origin in os.environ.get(
+    "SYNOPSIST_ORIGINS", "https://oslohaggadone.com,https://oslohaggadone.github.io").split(",") if origin]
 EVENTS_META = '<meta name="synopsist-events" content="events">'
 
 

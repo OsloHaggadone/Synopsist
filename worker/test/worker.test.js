@@ -12,7 +12,7 @@ const folder = (path) => fileURLToPath(new URL(`../${path}`, import.meta.url));
 const SCHEMA = readFileSync(folder("migrations/0001_events.sql"), "utf8");
 const CASES = JSON.parse(readFileSync(folder("test/event-cases.json"), "utf8"));
 const SONGS = JSON.stringify({ tracks: Object.entries(CASES.songs).map(([id, duration]) => ({ id, duration })) });
-const SITE = "https://oslohaggadone.github.io";
+const SITE = "https://oslohaggadone.com";
 const USER = CASES.base.user_id;
 
 // "now", "now-60d", "now+3d": a time relative to the test's
@@ -93,6 +93,8 @@ test("asking first from the site is answered; from elsewhere it isn't", async (t
   const ask = (origin) => mf.dispatchFetch("https://api.test/events", {
     method: "OPTIONS", headers: { Origin: origin, "Access-Control-Request-Method": "POST" } });
   assert.equal((await ask(SITE)).headers.get("Access-Control-Allow-Origin"), SITE);
+  const old = "https://oslohaggadone.github.io"; // the old address, still allowed (wrangler.toml)
+  assert.equal((await ask(old)).headers.get("Access-Control-Allow-Origin"), old);
   assert.equal((await ask("https://example.com")).headers.get("Access-Control-Allow-Origin"), null);
 });
 

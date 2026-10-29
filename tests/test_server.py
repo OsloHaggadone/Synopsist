@@ -101,8 +101,9 @@ def test_the_page_says_where_the_api_is(api):
 def test_only_the_published_site_may_send_from_elsewhere(api):
     client, _ = api
     asking = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
-    allowed = client.options("/events", headers={"Origin": "https://oslohaggadone.github.io", **asking})
-    assert allowed.headers.get("access-control-allow-origin") == "https://oslohaggadone.github.io"
+    for site in ("https://oslohaggadone.com", "https://oslohaggadone.github.io"):  # the domain, and the old address
+        allowed = client.options("/events", headers={"Origin": site, **asking})
+        assert allowed.headers.get("access-control-allow-origin") == site
     other = client.options("/events", headers={"Origin": "https://example.com", **asking})
     assert "access-control-allow-origin" not in other.headers
 
@@ -152,7 +153,7 @@ def event(user=USER, track="song-a", **fields):
 def test_other_websites_pages_cant_send(api):
     client, database = api
     assert client.post("/events", json=event(), headers={"Origin": "https://example.com"}).status_code == 403
-    assert client.post("/events", json=event(), headers={"Origin": "https://oslohaggadone.github.io"}).json()["stored"] == 1
+    assert client.post("/events", json=event(), headers={"Origin": "https://oslohaggadone.com"}).json()["stored"] == 1
     assert client.post("/events", json=event(), headers={"Origin": "http://testserver"}).json()["stored"] == 1  # its own page
     assert len(stored(database)) == 2
 

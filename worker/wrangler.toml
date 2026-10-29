@@ -10,10 +10,12 @@ compatibility_date = "2026-10-23"
 enabled = false
 
 [vars]
-# the sites whose pages may send events (separated by commas)
-ORIGINS = "https://oslohaggadone.github.io"
+# the sites whose pages may send events (separated by commas): the site's domain (since Oct 29), and
+# its old github.io address, which forwards there now but where a page kept by the offline store may
+# still send what it held
+ORIGINS = "https://oslohaggadone.com,https://oslohaggadone.github.io"
 # the songs it takes events for: the live site's own list, so a new song counts once it's published
-CATALOG_URL = "https://oslohaggadone.github.io/Synopsist/library/catalog.json"
+CATALOG_URL = "https://oslohaggadone.com/Synopsist/library/catalog.json"
 
 # The database, made once with: npx wrangler d1 create synopsist-events
 # (its database_id goes here, in place of the zeros)

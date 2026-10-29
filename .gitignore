@@ -16,9 +16,6 @@ __pycache__/
 /data/*
 !/data/catalog.csv
 
-# The artist's private songs, never published: the build skips them too (ingest.PRIVATE_FOLDER)
-/data/stream/private/
-
 # Essentia model files
 /models/
 

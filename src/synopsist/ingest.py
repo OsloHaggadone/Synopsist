@@ -19,9 +19,6 @@ from synopsist.config import ARTIST, CATALOG_CSV, STREAM_DIR
 
 COLUMNS = ["track_id", "title", "artist", "album", "release_date", "file", "spotify_url", "apple_music_url", "amazon_music_url"]
 COVER_NAMES = {f"{stem}.{ext}" for stem in ("cover", "folder") for ext in ("jpg", "jpeg", "png", "webp")}
-# data/stream/private/: the artist's private songs, some of them other artists': kept off the site.
-# Never cataloged here, so never published.
-PRIVATE_FOLDER = "private"
 
 
 class CatalogError(Exception):
@@ -53,8 +50,6 @@ def find_stream_files(stream_dir: Path = STREAM_DIR) -> list[str]:
         rel = path.relative_to(stream_dir)
         if not path.is_file() or any(part.startswith(".") for part in rel.parts):
             continue
-        if rel.parts[0].lower() == PRIVATE_FOLDER:
-            continue  # the artist's private songs: not even a "Skipped" line about them
         if len(rel.parts) == 2 and path.suffix.lower() == ".mp3":
             files.append(rel.as_posix())
         elif not (len(rel.parts) == 2 and path.name.lower() in COVER_NAMES):

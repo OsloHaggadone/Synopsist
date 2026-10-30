@@ -29,9 +29,10 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
-# except the website's copies of the songs (written by scripts/build_catalog.py): they're in the
-# repository so GitHub Pages can stream them
-!/player/library/audio/*
+# The website's copies of the songs (written by scripts/build_catalog.py): a clone of the private
+# repository OsloHaggadone/synopsist-audio, so a song taken off the site is in no public repository
+# (scripts/push_songs.sh pushes them; the site's publishing reads them from there)
+/player/library/audio/
 
 # Windows metadata created when copying files into WSL
 *:Zone.Identifier

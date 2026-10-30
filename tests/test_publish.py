@@ -171,6 +171,17 @@ def test_publish_again_changes_nothing_and_cleans_up(library):
     assert all(t["src"].startswith("https://cdn.example/") for t in catalog["tracks"])
 
 
+def test_the_songs_repository_keeps_its_own_files(library):
+    conn, stream, out, analysis = library
+    (out / "audio" / ".git").mkdir(parents=True)
+    (out / "audio" / ".git" / "HEAD").write_text("ref: refs/heads/main\n")
+    (out / "audio" / "README.md").write_text("The website's songs\n")
+    (out / "audio" / "gone.0123456789.mp3").write_bytes(b"a song taken off the site")
+    publish(conn, library=out, stream_dir=stream, audio_base_url="", target_lufs=-14.0, analysis_dir=analysis)
+    assert (out / "audio" / ".git" / "HEAD").exists() and (out / "audio" / "README.md").exists()
+    assert not (out / "audio" / "gone.0123456789.mp3").exists()
+
+
 def test_who_each_song_and_album_is_by(library):
     conn, stream, out, analysis = library
     conn.execute("UPDATE tracks SET artist = 'Someone Else' WHERE track_id = 'other'")

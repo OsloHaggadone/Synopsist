@@ -2,7 +2,8 @@
 
 - audio/<track_id>.<version>.mp3: every song, volume-matched to config.STREAM_LUFS without
   re-encoding (see mp3gain.py). The version in the name changes whenever the audio does, so
-  browsers and caches never play an outdated copy.
+  browsers and caches never play an outdated copy. This folder is a clone of the private repository
+  OsloHaggadone/synopsist-audio (scripts/push_songs.sh), so the songs are in no public repository.
 - covers/<album>-<size>.<version>.jpg: album art from data/stream/<album>/cover.jpg, resized for
   the album list (640 px) and the full-screen view (1400 px).
 - analysis/<track_id>.<version>.json: what the website does with each song's analysis: the bass,
@@ -345,10 +346,13 @@ def publish(conn: sqlite3.Connection, library: Path = LIBRARY_DIR, stream_dir: P
     albums.sort(key=lambda a: a["release_date"] or "", reverse=True)
     summary["albums"] = len(albums)
 
+    # what's no longer used goes, but in audio/ only songs: it's a clone of the private songs
+    # repository, whose own files (.git, README.md) stay
     for folder in (audio_dir, covers_dir, details_dir):
         for path in folder.iterdir():
-            if path.name not in keep:
-                path.unlink()
+            if path.name in keep or not path.is_file() or (folder == audio_dir and path.suffix not in (".mp3", ".tmp")):
+                continue
+            path.unlink()
 
     text = json.dumps({"albums": albums, "tracks": tracks}, ensure_ascii=False, indent=1) + "\n"
     catalog = library / "catalog.json"

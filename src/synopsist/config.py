@@ -18,9 +18,9 @@ LIBRARY_DIR = PLAYER_DIR / "library"  # written by scripts/build_catalog.py for 
 # files in data/stream/ are never touched. None keeps every song at its original level.
 STREAM_LUFS = -14.0
 
-# Where the website loads songs from. Empty means the copies in player/library/audio/, for running
-# the site on this computer. Once the copies are uploaded to cloud storage (Phase 4), put the
-# bucket's public URL here, ending in a slash.
+# Where the website loads songs from. Empty means the copies in player/library/audio/ (a clone of the
+# private repository OsloHaggadone/synopsist-audio), published with the site. Only if they ever move
+# to cloud storage, put the bucket's public URL here, ending in a slash.
 AUDIO_BASE_URL = ""
 
 # Who a song is by when its row in data/catalog.csv doesn't say (the artist column, filled in with

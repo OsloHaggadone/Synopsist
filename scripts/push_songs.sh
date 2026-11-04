@@ -16,5 +16,6 @@ else
   removed=$(git diff --cached --name-only --diff-filter=D -- '*.mp3' | wc -l)
   git commit -q -m "Songs: $added added, $removed removed"
 fi
-git push -q origin main
+# GitHub has refused the deploy keys for a few minutes at a time (Nov 4): try three times, a minute apart
+for try in 1 2 3; do git push -q origin main && break; [ $try = 3 ] && exit 1; echo "Trying again in a minute..."; sleep 60; done
 echo "The private songs repository is up to date: https://github.com/OsloHaggadone/synopsist-audio"

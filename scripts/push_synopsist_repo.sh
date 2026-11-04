@@ -8,6 +8,10 @@
 set -e
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 split=$(git subtree split --prefix=Synopsist)  # the same commits each time, so later pushes just add to them
-GIT_SSH_COMMAND="ssh -i $HOME/.ssh/synopsist_repo -o IdentitiesOnly=yes" \
-  git push git@github.com:OsloHaggadone/Synopsist.git "$split:refs/heads/main"
+# GitHub has refused the deploy keys for a few minutes at a time (Nov 4): try three times, a minute apart
+for try in 1 2 3; do
+  GIT_SSH_COMMAND="ssh -i $HOME/.ssh/synopsist_repo -o IdentitiesOnly=yes" \
+    git push git@github.com:OsloHaggadone/Synopsist.git "$split:refs/heads/main" && break
+  [ $try = 3 ] && exit 1; echo "Trying again in a minute..."; sleep 60
+done
 echo "Synopsist's own repository is up to date: https://github.com/OsloHaggadone/Synopsist"

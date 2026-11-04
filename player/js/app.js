@@ -41,6 +41,8 @@ const CATALOG_URL = new URL("library/catalog.json", document.baseURI);
 const SEEK_STEP_S = 5;
 const IDLE_MS = 2500; // in full screen, hide the pointer and the controls after this long without moving
 const LINK_NAMES = { spotify: "Spotify", appleMusic: "Apple Music", amazonMusic: "Amazon Music", youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok" };
+// a song's own links on the stores (its row in data/catalog.csv), in its menu where it has them
+const STORES = [["spotify", "Spotify"], ["apple_music", "Apple Music"], ["amazon_music", "Amazon Music"]];
 const prefersLight = matchMedia("(prefers-color-scheme: light)");
 const IOS = document.documentElement.hasAttribute("data-ios"); // an iPhone or iPad (index.html)
 const phoneLayout = matchMedia("(max-width: 720px)"); // where style.css lays the player out for phones
@@ -868,6 +870,8 @@ function openMenu(button, track, list = null) {
       : ["Download", "download", () => toggleDownload([track.id], `“${track.title}”`)]),
     ["Song details", "details", () => openDetails(track.id)],
     ["Copy link", "link", () => copyLink(track)],
+    ...STORES.filter(([key]) => track[key])
+      .map(([key, name]) => [`Listen on ${name}`, "external", () => window.open(track[key], "_blank", "noopener")]),
   ];
   // (with Star ratings on: the row has no room for them)
   showMenu(button, track.title, items, ratingsSetting() ? [el("div", { class: "menu-rating" }, ratingStars(track))] : []);

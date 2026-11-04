@@ -17,6 +17,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/build_catalog.py   # analyzes every song, builds data/synopsist.db and the website's music library
+python scripts/import_spotify.py <release link>   # links each song on that Spotify release to itself (then build again)
 python app/server.py              # runs the website and its listening API at http://localhost:8000 (Ctrl+C stops it)
 python scripts/listening_log.py   # what's been listened to: the latest events (--replays: every jump back that counts)
 python scripts/pull_events.py     # downloads the live site's listening data to data/live.db (see below)

@@ -165,7 +165,7 @@
    "bpm": 162,
    "key": "C major",
    "src": "audio/eternal-synopsis.ecb4dcc84c.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/5a4ZGwwad5JgxZDvyTnRXm",
    "apple_music": "https://music.apple.com/ca/album/eternal-synopsis/1892788764?i=1892788767",
    "amazon_music": null,
    "analysis": "analysis/eternal-synopsis.3c2d3c74a2.json"
@@ -181,7 +181,7 @@
    "bpm": 162,
    "key": "C major",
    "src": "audio/hollow-journey.5c869dbb32.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/7BZaBdOo6J6cFCEn0OJJMK",
    "apple_music": "https://music.apple.com/ca/album/hollow-journey/1714145567?i=1714145570",
    "amazon_music": null,
    "analysis": "analysis/hollow-journey.527b601ea1.json"
@@ -197,7 +197,7 @@
    "bpm": 120,
    "key": "G major",
    "src": "audio/electric-space.f6a03caab3.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/76KlFuZeMHPNEZbKF5LaOa",
    "apple_music": "https://music.apple.com/ca/album/electric-space/1714145567?i=1714145573",
    "amazon_music": null,
    "analysis": "analysis/electric-space.b83dcbf825.json"
@@ -213,7 +213,7 @@
    "bpm": 130,
    "key": "E major",
    "src": "audio/into-space.e377a1fe3f.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0BtcuqhjIdOly4zch5w7fI",
    "apple_music": "https://music.apple.com/ca/album/into-space/1714145567?i=1714145579",
    "amazon_music": null,
    "analysis": "analysis/into-space.9805901bf7.json"
@@ -229,7 +229,7 @@
    "bpm": 110,
    "key": "C major",
    "src": "audio/space-rain.133c2cde39.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/6WePt3lf92pnDVscMC9eiG",
    "apple_music": "https://music.apple.com/ca/album/space-rain/1714145567?i=1714145581",
    "amazon_music": null,
    "analysis": "analysis/space-rain.275df4d0f6.json"
@@ -245,7 +245,7 @@
    "bpm": 140,
    "key": "A minor",
    "src": "audio/zero-gravity.852ac146fe.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/2HjFd1I5NoUDY2qiEyO0j6",
    "apple_music": "https://music.apple.com/ca/album/zero-gravity/1714145567?i=1714145750",
    "amazon_music": null,
    "analysis": "analysis/zero-gravity.9e755a7e68.json"
@@ -261,7 +261,7 @@
    "bpm": 103,
    "key": "C major",
    "src": "audio/negative-space.57c86f714b.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0jQD4hRGXyC3g6VzOZUxFC",
    "apple_music": "https://music.apple.com/ca/album/negative-space/1714145567?i=1714145753",
    "amazon_music": null,
    "analysis": "analysis/negative-space.9a4c8f8fdb.json"
@@ -277,7 +277,7 @@
    "bpm": 114,
    "key": "C major",
    "src": "audio/tropical-space-day.434f500bf5.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0MOGHbUFqdJeKpYbHgJxJ2",
    "apple_music": "https://music.apple.com/ca/album/tropical-space-day/1714145567?i=1714145756",
    "amazon_music": null,
    "analysis": "analysis/tropical-space-day.b68cfb93e7.json"
@@ -293,7 +293,7 @@
    "bpm": 114,
    "key": "C major",
    "src": "audio/tropical-space-day-extended.e0a294d9db.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/4g7oXVeEmnZAKfUOHIOcgC",
    "apple_music": "https://music.apple.com/ca/album/tropical-space-extended-version/1714145567?i=1714145760",
    "amazon_music": null,
    "analysis": "analysis/tropical-space-day-extended.b322f8f18a.json"
@@ -309,7 +309,7 @@
    "bpm": 120,
    "key": "C major",
    "src": "audio/bad-boy.652dd0081e.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0Wi1tChhILRCKcznqV6j8z",
    "apple_music": "https://music.apple.com/ca/album/bad-boy/1714145567?i=1714145763",
    "amazon_music": null,
    "analysis": "analysis/bad-boy.16c10510df.json"
@@ -325,7 +325,7 @@
    "bpm": 80,
    "key": "E major",
    "src": "audio/spacial-awareness.baed39b23a.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/6MZFKNCqDIESILfJhMwMzx",
    "apple_music": "https://music.apple.com/ca/album/spacial-awareness/1714145567?i=1714145767",
    "amazon_music": null,
    "analysis": "analysis/spacial-awareness.3a606231fd.json"
@@ -341,7 +341,7 @@
    "bpm": 124,
    "key": "C major",
    "src": "audio/delta-gravity-delta-side.52659f670b.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/5Q2YZnhlCAVqesEEM3VF49",
    "apple_music": "https://music.apple.com/ca/album/delta-gravity-delta-side/1714145567?i=1714145770",
    "amazon_music": null,
    "analysis": "analysis/delta-gravity-delta-side.bc4880a88a.json"
@@ -357,7 +357,7 @@
    "bpm": 132,
    "key": "A minor",
    "src": "audio/hollow-truth.09deff48d4.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/2y5IzsYsTJSBoTJCcbLQeJ",
    "apple_music": "https://music.apple.com/ca/album/hollow-truth/1714145567?i=1714145771",
    "amazon_music": null,
    "analysis": "analysis/hollow-truth.70c1ae581d.json"
@@ -373,7 +373,7 @@
    "bpm": 144,
    "key": "A minor",
    "src": "audio/hollow-journey-beyond.a1ee75bcc2.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/7B0TaPhlnpqV6jnuRPiIzm",
    "apple_music": "https://music.apple.com/ca/album/hollow-journey-beyond/1770705214?i=1770705215",
    "amazon_music": null,
    "analysis": "analysis/hollow-journey-beyond.4385e27466.json"
@@ -389,7 +389,7 @@
    "bpm": 102,
    "key": "C minor",
    "src": "audio/volition.6d808c05c9.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/5sCXST6iy1dY2sqo82EIo6",
    "apple_music": "https://music.apple.com/ca/album/volition/1770705214?i=1770705216",
    "amazon_music": null,
    "analysis": "analysis/volition.fd1268ea57.json"
@@ -405,7 +405,7 @@
    "bpm": 104,
    "key": "C major",
    "src": "audio/crimson-eclipse.413807aeb4.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/11KXDl2biemINcHkakQbKM",
    "apple_music": "https://music.apple.com/ca/album/crimson-eclipse/1770705214?i=1770705217",
    "amazon_music": null,
    "analysis": "analysis/crimson-eclipse.ab246c95d2.json"
@@ -421,7 +421,7 @@
    "bpm": 118,
    "key": "C major",
    "src": "audio/impulse.3c32e9d9af.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/7iv7lGBC4uv9UrYf9OZWXF",
    "apple_music": "https://music.apple.com/ca/album/impulse/1770705214?i=1770705218",
    "amazon_music": null,
    "analysis": "analysis/impulse.2b1f10252d.json"
@@ -437,7 +437,7 @@
    "bpm": 96,
    "key": "Ab major",
    "src": "audio/flowers-about.a7b06c47ff.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0Ll2vfpZ8HhBQpy7XJKdHG",
    "apple_music": "https://music.apple.com/ca/album/flowers-about/1770705214?i=1770705219",
    "amazon_music": null,
    "analysis": "analysis/flowers-about.755467fdf3.json"
@@ -453,7 +453,7 @@
    "bpm": 92,
    "key": "F major",
    "src": "audio/planetary-fields-2024-remastered-version.b6a2327aaa.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0h3qBN4dBXFiHgRIo986Oe",
    "apple_music": "https://music.apple.com/ca/album/planetary-fields-2024-remastered-version/1770705214?i=1770705220",
    "amazon_music": null,
    "analysis": "analysis/planetary-fields-2024-remastered-version.f11a442501.json"
@@ -469,7 +469,7 @@
    "bpm": 124,
    "key": "A minor",
    "src": "audio/jiggly-cake.659eb56ba6.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/0MB7gv1ov0G0SBcpXIugRq",
    "apple_music": "https://music.apple.com/ca/album/jiggly-cake/1770705214?i=1770705221",
    "amazon_music": null,
    "analysis": "analysis/jiggly-cake.85fa0332ab.json"
@@ -485,7 +485,7 @@
    "bpm": 124,
    "key": "F major",
    "src": "audio/glistening-dawn.07e4ecd7f8.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/3ghL1z8OXuzTUldo0yvqMh",
    "apple_music": "https://music.apple.com/ca/album/glistening-dawn/1770705214?i=1770705222",
    "amazon_music": null,
    "analysis": "analysis/glistening-dawn.ffd4217760.json"
@@ -501,7 +501,7 @@
    "bpm": 130,
    "key": "G major",
    "src": "audio/you-know-what-that-means.b06fc887d3.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/7ftTMjz0k5eXWvpaHBaASn",
    "apple_music": "https://music.apple.com/ca/album/you-know-what-that-means/1770705214?i=1770705223",
    "amazon_music": null,
    "analysis": "analysis/you-know-what-that-means.991b8ed63c.json"
@@ -517,7 +517,7 @@
    "bpm": 152,
    "key": "Eb major",
    "src": "audio/facades.355858901e.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/143JC4wPAFQYrhlH2Qi5Qd",
    "apple_music": "https://music.apple.com/ca/album/facades/1770705214?i=1770705224",
    "amazon_music": null,
    "analysis": "analysis/facades.aaf1d1b885.json"
@@ -533,7 +533,7 @@
    "bpm": 124,
    "key": "C major",
    "src": "audio/journey.530d459ebf.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/3pYyfzRkqMDcyqRNzDiXT4",
    "apple_music": "https://music.apple.com/ca/album/journey/1770705214?i=1770705225",
    "amazon_music": null,
    "analysis": "analysis/journey.bb4f54efce.json"
@@ -549,7 +549,7 @@
    "bpm": 118,
    "key": "F minor",
    "src": "audio/dying-light.18d23eb389.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/51FQnI1ApraYCedd8eNIui",
    "apple_music": "https://music.apple.com/ca/album/dying-light/1770705214?i=1770705226",
    "amazon_music": null,
    "analysis": "analysis/dying-light.b9d48aee51.json"
@@ -661,7 +661,7 @@
    "bpm": 92,
    "key": "F major",
    "src": "audio/planetary-fields-final-ver.0179d3b412.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/1H4eDiVaoTab9EAIkaSs2b",
    "apple_music": "https://music.apple.com/ca/album/planetary-fields/1754496728?i=1754496729",
    "amazon_music": null,
    "analysis": "analysis/planetary-fields-final-ver.0311270d38.json"
@@ -677,7 +677,7 @@
    "bpm": 92,
    "key": "F major",
    "src": "audio/planetary-fields-milestone.c5fa7d4917.mp3",
-   "spotify": null,
+   "spotify": "https://open.spotify.com/track/5dRZQwDJ48ygKCvY9y4Fl9",
    "apple_music": "https://music.apple.com/ca/album/planetary-fields-milestone-demo/1754496728?i=1754496730",
    "amazon_music": null,
    "analysis": "analysis/planetary-fields-milestone.54d43325bb.json"

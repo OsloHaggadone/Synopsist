@@ -43,6 +43,7 @@ Backgrounds react to the bass, mids, and highs. Color palette is taken directly 
 
 Settings (saved in the browser):
 
+Language: English, 简体中文, 日本語, or 한국어 (otherwise the device's own), for everything but the songs (player/i18n/strings.json)
 Theme: one of four album palettes, plus Auto, Light, or Dark
 Graphics: High, Low, or Off
 Sound: EQ, live EQ display, Enhance audio (volume matching, on by default), and crossfade
@@ -54,6 +55,7 @@ Lock-screen and media-key controls
 Keyboard shortcuts
 Reduced-motion support
 iPhone Home Screen install (see #app)
+Anonymous feedback (see #feedback): a 5-star rating and a few words, emailed to the artist, nothing kept
 Fonts: Kazesawa and Exo, subsetted in player/fonts/ (SIL OFL)
 
 Loudness. Songs are matched to -14 LUFS by adjusting each MP3 frame’s gain (like mp3gain), with no re-encoding. The originals in data/stream/ are never changed. 

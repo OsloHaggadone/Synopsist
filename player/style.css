@@ -10,11 +10,22 @@
 @font-face { font-family: "Kazesawa"; src: url("fonts/kazesawa-extrabold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
 @font-face { font-family: "Exo"; src: url("fonts/exo-variable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
 
+/* Chinese, Japanese, and Korean (js/i18n.js): Kazesawa and Exo have only Latin letters, so the rest is
+   in the device's own fonts for the language, the ones its own apps use (PingFang and Hiragino on
+   Apple's, YaHei, Yu Gothic, and Malgun Gothic on Windows, Noto on Android) */
+:root { --cjk: "Kazesawa"; }
+:root:lang(zh) { --cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC"; }
+:root:lang(ja) { --cjk: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", "Noto Sans JP", "Noto Sans CJK JP"; }
+:root:lang(ko) { --cjk: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR"; }
+:root:lang(ko) body { word-break: keep-all; } /* Korean breaks lines between words, as English does */
+/* until the page's words are in the listener's language (index.html, js/app.js) */
+:root[data-translating] body { visibility: hidden; }
+
 /* --- sizes and motion ------------------------------------------------------------------------- */
 
 :root {
-  --font: "Kazesawa", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --display: "Exo", "Kazesawa", ui-sans-serif, system-ui, sans-serif;
+  --font: "Kazesawa", var(--cjk), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --display: "Exo", "Kazesawa", var(--cjk), ui-sans-serif, system-ui, sans-serif;
   --ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
   --skew: -14deg;
   --radius: 3px;
@@ -180,16 +191,16 @@ body {
    and then for computers); the search box and the playlist name box still can */
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 :is(input, textarea) { -webkit-user-select: text; user-select: text; }
-body[data-view="player"], body:is([data-view="settings"], [data-view="app"]).has-track { padding-bottom: calc(var(--bar-h) + 24px); }
+body[data-view="player"], body:is([data-view="settings"], [data-view="app"], [data-view="feedback"]).has-track { padding-bottom: calc(var(--bar-h) + 24px); }
 body.visual-open { overflow: hidden; }
 
-/* the pages: the title screen, the music, the settings, and the app's (the last two share the music
-   page's top bar) */
+/* the pages: the title screen, the music, the settings, the app's, and feedback (the last three share
+   the music page's top bar) */
 body[data-view="home"] .player-page { display: none; }
 body:not([data-view="home"]) .landing { display: none; }
-body:is([data-view="settings"], [data-view="app"]) main, body:not([data-view="settings"]) .settings-page,
-body:not([data-view="app"]) .app-page { display: none; }
-body:is([data-view="home"], [data-view="settings"], [data-view="app"]):not(.has-track) .player-bar { display: none; }
+body:is([data-view="settings"], [data-view="app"], [data-view="feedback"]) main, body:not([data-view="settings"]) .settings-page,
+body:not([data-view="app"]) .app-page, body:not([data-view="feedback"]) .feedback-page { display: none; }
+body:is([data-view="home"], [data-view="settings"], [data-view="app"], [data-view="feedback"]):not(.has-track) .player-bar { display: none; }
 
 svg { width: 1.25em; height: 1.25em; fill: currentColor; flex-shrink: 0; }
 .icons { position: absolute; width: 0; height: 0; overflow: hidden; }
@@ -1480,13 +1491,13 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 
 /* Compact and quiet: each setting's name, then a dropdown of its choices (a few small words under
    some of them in the list), and small notes. */
-.settings-page, .app-page { max-width: 820px; margin: 0 auto; padding: clamp(1.25rem, 3.5vw, 2.25rem) clamp(1rem, 3.5vw, 3rem) 0; }
+.settings-page, .app-page, .feedback-page { max-width: 820px; margin: 0 auto; padding: clamp(1.25rem, 3.5vw, 2.25rem) clamp(1rem, 3.5vw, 3rem) 0; }
 .back-link { display: inline-flex; align-items: center; gap: 0.45rem; margin: 0 0 1rem -0.15rem; padding: 0.3rem 0.15rem; color: var(--muted); font: 600 0.92rem var(--display); text-decoration: none; transition: color 0.2s; }
 .back-link:hover { color: var(--text); }
 .back-link svg { width: 1.1em; height: 1.1em; transform: scaleX(-1); }
-.settings-page > .section-title, .app-page > .section-title { font-size: clamp(1.5rem, 3.5vw, 2rem); }
+.settings-page > .section-title, .app-page > .section-title, .feedback-page > .section-title { font-size: clamp(1.5rem, 3.5vw, 2rem); }
 /* the first group's line is the one under the title */
-.settings-page > .section-title::after, .app-page > .section-title::after { display: none; }
+.settings-page > .section-title::after, .app-page > .section-title::after, .feedback-page > .section-title::after { display: none; }
 .settings-intro { margin: 0.35rem 0 1.5rem; color: var(--faint); font-size: 0.86rem; }
 
 .settings-group { padding: 1.4rem 0 1.6rem; border-top: 1px solid var(--line); }
@@ -1504,9 +1515,23 @@ html.cross-fading::view-transition-new(root) { animation-duration: 0.35s; animat
 .app-in-app { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; line-height: 1.55; }
 .app-other { margin: 0; font-size: 0.95rem; line-height: 1.55; }
 .app-install { margin: 0 0 1rem; }
-.app-link a { color: inherit; text-underline-offset: 0.2em; }
-.app-link a:hover { color: var(--text); }
+.app-link a, .feedback-link a { color: inherit; text-underline-offset: 0.2em; }
+.app-link a:hover, .feedback-link a:hover { color: var(--text); }
 :root[data-app] .app-link { display: none; } /* in the app already */
+/* the feedback page (#feedback, js/feedback.js): the stars, a box to write in, and Send */
+.feedback-form { display: grid; gap: 1.6rem; padding: 1.4rem 0 1.6rem; border-top: 1px solid var(--line); }
+.feedback-question { min-width: 0; margin: 0; padding: 0; border: 0; }
+.feedback-label { display: block; margin: 0 0 0.55rem; padding: 0; color: var(--text); font: 650 1.05rem / 1.35 var(--display); }
+.feedback-stars { margin-left: -7px; }
+.feedback-stars .star { position: relative; width: 44px; height: 44px; }
+.feedback-stars .star svg { width: 30px; height: 30px; }
+.feedback-stars .star.on { color: var(--accent); }
+:root[data-input="keyboard"] .feedback-stars .star:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: -3px; }
+.feedback-message { display: block; min-height: 9rem; padding: 0.6rem 0.8rem; line-height: 1.55; resize: vertical; }
+.feedback-send { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.1rem; }
+.feedback-status { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.feedback-status.error { color: var(--text); font-weight: 600; }
+.honey { display: none; }
 /* the graphics level recommended for this device (js/device.js): a line with a button to use it, then
    what it's based on, small; and in the list, a tag by its name */
 .settings-note.advice { color: var(--muted); }

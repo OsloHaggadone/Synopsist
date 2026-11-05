@@ -3,13 +3,14 @@
 // song's details), and the full-screen view, connected to the playback engine (player.js).
 //
 // The pages live in this one document so the music never stops between them: no "#" in the address
-// shows the landing page, "#settings" the settings, and any other link ("#music", "#song-space-rain")
-// the music page. Changing page cross-fades quickly, as changing the theme, or between light and
-// dark, does.
+// shows the landing page, "#settings" the settings, "#app" the app's, "#feedback" feedback
+// (js/feedback.js), and any other link ("#music", "#song-space-rain") the music page. Every word is in
+// the listener's language (js/i18n.js: t() for a phrase, count() for a number of things). Changing
+// page cross-fades quickly, as changing the theme, or between light and dark, does.
 
 import { SITE } from "../site.js";
 import { loadAnalysis } from "./analysis.js";
-import { markMoment, renderDetails } from "./details.js";
+import { keyName, markMoment, renderDetails } from "./details.js";
 import { aboutDevice, countFrames, frameRates, recommendation } from "./device.js";
 import { clock, el, icon, replay, restart, setIcon } from "./dom.js";
 import {
@@ -19,6 +20,8 @@ import {
 import { dropdown } from "./dropdown.js";
 import { songEffects } from "./effects.js";
 import { equalize } from "./eq.js";
+import { wireFeedback } from "./feedback.js";
+import { count, language, locale, num, setLanguage, t, tNodes, translatePage } from "./i18n.js";
 import { listenerTag, setSharing, sharingEnabled } from "./listening.js";
 import { liveEq } from "./liveeq.js";
 import { isFavorite, onMarksChange, rate, ratingOf, toggleFavorite } from "./marks.js";
@@ -62,22 +65,24 @@ let flowing = false; // a song has just ended by itself, and the next one is com
 
 function totalTime(seconds) {
   const m = Math.round(seconds / 60);
-  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} hr ${m % 60} min`;
+  return m < 60 ? t("{m} min", { m: num(m) }) : t("{h} hr {m} min", { h: num(Math.floor(m / 60)), m: num(m % 60) });
 }
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+// "1 song", "27 songs", in the listener's language (js/i18n.js, as all the site's words are)
+const songCount = (n) => count(n, "{n} song", "{n} songs");
+const albumCount = (n) => count(n, "{n} album", "{n} albums");
 const twoDigits = (n) => String(n).padStart(2, "0");
 const searchable = (text) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-// A release date ("2023-10-31") as people write it, "Oct 31, 2023": the day itself, read in UTC so it
-// doesn't show the day before west of Greenwich.
-const dayFormat = new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+// A release date ("2023-10-31") as people write it, "Oct 31, 2023" (or "2023年10月31日", in the
+// listener's language): the day itself, read in UTC so it doesn't show the day before west of Greenwich.
+const dayFormat = new Intl.DateTimeFormat(locale, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 const showDate = (iso) => (iso ? dayFormat.format(new Date(iso)) : null);
 
 // How many times a song has been streamed: the artist's own numbers in site.js, or null if not given.
 const streamsOf = (id) => (Number.isFinite(SITE.streams?.[id]) ? SITE.streams[id] : null);
-const streamCount = (n) => `${n.toLocaleString("en")} stream${n === 1 ? "" : "s"}`;
-const asOf = () => (SITE.streamsAsOf ? `as of ${showDate(SITE.streamsAsOf)}` : null);
+const streamCount = (n) => count(n, "{n} stream", "{n} streams");
+const asOf = () => (SITE.streamsAsOf ? t("as of {date}", { date: showDate(SITE.streamsAsOf) }) : null);
 
 // Album art, or a cover drawn in the album's own colors when there's no image yet.
 function coverArt(album, large = false) {
@@ -144,10 +149,11 @@ function choosePalette(palette) {
 
 // --- the settings page: the colors, how much the site moves, listening data (js/settings.js) ----
 
-const choices = {}; // the dropdowns: palette (the theme), mode (light or dark), graphics, eq
+const choices = {}; // the dropdowns: language, palette (the theme), mode (light or dark), graphics, eq
 
 // Each dropdown and switch shows what's chosen.
 function showSettings() {
+  choices.language.show(language);
   choices.palette.show(paletteSetting());
   choices.mode.show(themeSetting());
   choices.graphics.show(graphicsSetting());
@@ -168,10 +174,10 @@ function showSettings() {
 function showListenerTag() {
   const tag = sharingEnabled() && listenerTag();
   $("#listener-tag").hidden = !tag;
-  if (tag) $("#listener-tag").textContent = `This browser's random ID starts with ${tag}.`;
+  if (tag) $("#listener-tag").textContent = t("This browser's random ID starts with {tag}.", { tag });
 }
 
-const LEVELS = { high: "High", low: "Low", off: "Off" };
+const LEVELS = { high: t("High"), low: t("Low"), off: t("Off") };
 let deviceKnown = false; // the device is looked at once, in an idle moment after the page loads
 
 // Under Graphics: the level recommended for this device (js/device.js), tagged in the list too, with
@@ -184,19 +190,20 @@ function showAdvice() {
   if (!shown) return;
   const level = recommendation();
   const inUse = graphicsSetting() === level;
-  $("#graphics-advice-text").replaceChildren("Recommended for this device: ", el("b", {}, LEVELS[level]), inUse ? " (in use)" : "");
+  const named = { level: el("b", {}, LEVELS[level]) };
+  $("#graphics-advice-text").replaceChildren(...(inUse ? tNodes("Recommended for this device: {level} (in use)", named) : tNodes("Recommended for this device: {level}", named)));
   $("#graphics-advice-use").hidden = inUse;
-  $("#graphics-advice-use").textContent = `Use ${LEVELS[level]}`;
+  $("#graphics-advice-use").textContent = t("Use {level}", { level: LEVELS[level] });
   for (const option of $$("#graphics-list [role=option]")) option.querySelector(".option-tag").hidden = option.dataset.value !== level;
   const { card, kind, cores, memory, width, height } = aboutDevice();
   const seen = frameRates();
   const ran = seen[graphicsSetting()] ? graphicsSetting() : Object.keys(seen)[0];
   $("#graphics-device").textContent = [
-    kind === "software" ? "Drawing without a graphics card" : card ? `${card}${kind === "built-in" ? ", built in" : ""}` : "Graphics card unknown",
-    cores && `${cores} cores`,
-    memory && `${memory} GB memory`,
-    `${width} × ${height} screen`,
-    ran && `full screen ran at ${seen[ran]} frames a second on ${LEVELS[ran]}`,
+    kind === "software" ? t("Drawing without a graphics card") : card ? (kind === "built-in" ? t("{card}, built in", { card }) : card) : t("Graphics card unknown"),
+    cores && t("{n} cores", { n: num(cores) }),
+    memory && t("{n} GB memory", { n: num(memory) }),
+    t("{width} × {height} screen", { width, height }),
+    ran && t("full screen ran at {n} frames a second on {level}", { n: seen[ran], level: LEVELS[ran] }),
   ].filter(Boolean).join(" · ");
 }
 
@@ -210,13 +217,14 @@ function wireSharing() {
       setSharing(box.checked);
       for (const other of switches) other.checked = box.checked;
       showListenerTag();
-      toast(box.checked ? "Thanks! Sharing anonymous listening data" : "Listening data sharing is off");
+      toast(box.checked ? t("Thanks! Sharing anonymous listening data") : t("Listening data sharing is off"));
     });
   }
 }
 
 // Works before the music has loaded (and if it can't), so it's wired first.
 function wireSettings() {
+  choices.language = dropdown($("#language-choice"), setLanguage);
   choices.palette = dropdown($("#palette-choice"), choosePalette);
   choices.mode = dropdown($("#mode-choice"), chooseTheme);
   choices.graphics = dropdown($("#graphics-choice"), setGraphics);
@@ -231,9 +239,9 @@ function wireSettings() {
   showSettings();
   wireSharing();
   $("#downloads-group").hidden = !downloadsSupported;
-  $("#download-all").addEventListener("click", () => toggleDownload(allIds, "every song"));
+  $("#download-all").addEventListener("click", () => toggleDownload(allIds, t("every song")));
   $("#remove-downloads").addEventListener("click", async () => {
-    if (await ask({ title: "Remove all downloads?", ok: "Remove", text: "The songs still play whenever you're online." })) {
+    if (await ask({ title: t("Remove all downloads?"), ok: t("Remove"), text: t("The songs still play whenever you're online.") })) {
       removeDownloads(downloadedIds());
     }
   });
@@ -271,12 +279,13 @@ function showAppPage() {
 
 let backTo = ""; // where the settings page's Back goes: the landing page (""), or the music page
 let appBackTo = ""; // and the app page's
+let feedbackBackTo = ""; // and the feedback page's
 let musicScroll = null; // how far down the music page was when the settings opened
 const jump = (y) => window.scrollTo({ top: y, behavior: "instant" });
 
 function showView(firstLoad) {
   const hash = decodeURIComponent(location.hash.slice(1));
-  const view = hash === "settings" || hash === "app" ? hash : hash ? "player" : "home";
+  const view = ["settings", "app", "feedback"].includes(hash) ? hash : hash ? "player" : "home";
   const from = document.body.dataset.view;
   const switching = from !== view;
   if (view === "settings" && switching) {
@@ -284,6 +293,7 @@ function showView(firstLoad) {
     musicScroll = from === "player" ? window.scrollY : null;
   }
   if (view === "app" && switching) appBackTo = { home: "", settings: "settings" }[from] ?? "music";
+  if (view === "feedback" && switching) feedbackBackTo = { home: "", settings: "settings", app: "app" }[from] ?? "music";
   const apply = () => {
     document.body.dataset.view = view;
     for (const link of $$(".settings-link")) {
@@ -306,6 +316,10 @@ function showView(firstLoad) {
     if (view === "app") {
       $("#app-back").href = `#${appBackTo}`;
       showAppPage();
+      return;
+    }
+    if (view === "feedback") {
+      $("#feedback-back").href = `#${feedbackBackTo}`;
       return;
     }
     // back from the settings: the music page where it was
@@ -345,7 +359,7 @@ function goTo(hash, scroll) {
 // --- the page text ---------------------------------------------------------------------------
 
 function fillSiteText(catalog) {
-  for (const node of $$("[data-site]")) node.textContent = SITE[node.dataset.site] ?? "";
+  for (const node of $$("[data-site]")) node.textContent = SITE[node.dataset.site] ? t(SITE[node.dataset.site]) : "";
   for (const node of $$("[data-needs]")) node.hidden = !SITE[node.dataset.needs];
   const links = Object.entries(SITE.links ?? {}).filter(([, url]) => url);
   for (const list of $$(".artist-links")) {
@@ -359,14 +373,13 @@ function fillSiteText(catalog) {
     if (src) image.src = src;
   }
   const points = SITE.summary ?? [];
-  $("#landing-points").replaceChildren(...points.map(({ title, text }) => el("li", {}, el("h3", {}, title), el("p", {}, text))));
+  $("#landing-points").replaceChildren(...points.map(({ title, text }) => el("li", {}, el("h3", {}, t(title)), el("p", {}, t(text)))));
   $("#landing-points").hidden = points.length === 0;
   if (catalog) {
     const total = catalog.tracks.reduce((sum, track) => sum + track.duration, 0);
-    const songs = plural(catalog.tracks.length, "song");
-    const albumCount = plural(catalog.albums.length, "album");
-    $("#landing-stats").textContent = `${songs} · ${albumCount} · free to stream`;
-    $("#music-stats").textContent = `${songs} · ${albumCount} · ${totalTime(total)}`;
+    const counts = [songCount(catalog.tracks.length), albumCount(catalog.albums.length)];
+    $("#landing-stats").textContent = [...counts, t("free to stream")].join(" · ");
+    $("#music-stats").textContent = [...counts, totalTime(total)].join(" · ");
   }
 }
 
@@ -389,10 +402,10 @@ function showReleases() {
 // What a release is, the way the music stores count it: a single (up to three songs), an EP (up to
 // six), both under half an hour, or else an album.
 function releaseKind(album, songs, seconds) {
-  if (!album.release_date) return "Unreleased";
-  if (seconds < 30 * 60 && songs <= 3) return "Single";
-  if (seconds < 30 * 60 && songs <= 6) return "EP";
-  return "Album";
+  if (!album.release_date) return t("Unreleased");
+  if (seconds < 30 * 60 && songs <= 3) return t("Single");
+  if (seconds < 30 * 60 && songs <= 6) return t("EP");
+  return t("Album");
 }
 
 // An album: a heading (its cover, its name, what it is, when, and how long, and small buttons to
@@ -400,7 +413,7 @@ function releaseKind(album, songs, seconds) {
 function renderGroup(album) {
   const list = album.tracks.map((id) => tracks.get(id));
   const total = list.reduce((sum, track) => sum + track.duration, 0);
-  const about = [album.artist, releaseKind(album, list.length, total), album.year, plural(list.length, "song"), totalTime(total)];
+  const about = [album.artist, releaseKind(album, list.length, total), album.year, songCount(list.length), totalTime(total)];
   const folded = isCollapsed(album.id);
   return el("section", { class: folded ? "group collapsed" : "group", id: `album-${album.id}`, dataset: { album: album.id }, "aria-labelledby": `album-title-${album.id}` },
     el("div", { class: "group-head" },
@@ -409,12 +422,12 @@ function renderGroup(album) {
         el("h3", { class: "group-title", id: `album-title-${album.id}` }, album.title),
         el("p", { class: "group-meta" }, about.filter(Boolean).join(" · "))),
       el("div", { class: "group-actions" },
-        el("button", { class: "icon-button small", onclick: () => playAlbum(album, false), "aria-label": `Play ${album.title}`, title: "Play" }, icon("play")),
-        el("button", { class: "icon-button small", onclick: () => playAlbum(album, true), "aria-label": `Shuffle ${album.title}`, title: "Shuffle" }, icon("shuffle")),
+        el("button", { class: "icon-button small", onclick: () => playAlbum(album, false), "aria-label": t("Play {title}", { title: album.title }), title: t("Play") }, icon("play")),
+        el("button", { class: "icon-button small", onclick: () => playAlbum(album, true), "aria-label": t("Shuffle {title}", { title: album.title }), title: t("Shuffle") }, icon("shuffle")),
         downloadButton(album.tracks, album.title),
         el("button", {
           class: "icon-button small fold", onclick: () => fold(album.id), "aria-expanded": String(!folded),
-          "aria-controls": `songs-${album.id}`, "aria-label": `${album.title}’s songs`, title: folded ? "Show the songs" : "Fold the album",
+          "aria-controls": `songs-${album.id}`, "aria-label": t("{title}’s songs", { title: album.title }), title: folded ? t("Show the songs") : t("Fold the album"),
         }, icon("chevron")))),
     el("ol", { class: "tracklist", id: `songs-${album.id}` }, ...list.map((track, i) => renderTrack(track, i + 1, albumList(album)))));
 }
@@ -428,7 +441,7 @@ function fold(albumId, folded = !isCollapsed(albumId)) {
   group.classList.toggle("collapsed", folded);
   const button = group.querySelector(".fold");
   button.setAttribute("aria-expanded", String(!folded));
-  button.title = folded ? "Show the songs" : "Fold the album";
+  button.title = folded ? t("Show the songs") : t("Fold the album");
 }
 
 // A song's row, numbered; clicking it plays `list` ({ids, label}, and `playlist` for one of the
@@ -441,23 +454,23 @@ function renderTrack(track, number, list, note = null) {
     id: list.playlist ? null : `song-${track.id}`,
     dataset: { id: track.id, search: searchable(`${track.title} ${album.title} ${track.artist}`) },
   },
-    el("button", { class: "track-main", onclick: () => playFrom(list, track), title: `Play ${track.title}` },
+    el("button", { class: "track-main", onclick: () => playFrom(list, track), title: t("Play {title}", { title: track.title }) },
       el("span", { class: "track-no", "aria-hidden": "true" },
         el("span", { class: "num" }, twoDigits(number)),
         el("span", { class: "eq" }, el("i"), el("i"), el("i")),
         icon("play")),
       el("span", { class: "track-title" }, el("span", { class: "track-name" }, track.title), note && el("span", { class: "track-album" }, note)),
-      el("span", { class: "track-saved", title: "Downloaded" }, icon("downloaded"))),
+      el("span", { class: "track-saved", title: t("Downloaded") }, icon("downloaded"))),
     el("span", { class: "track-actions" },
-      el("button", { class: "icon-button small", onclick: () => queueSong(track, "next"), "aria-label": `Play ${track.title} next`, title: "Play next" }, icon("play-next")),
-      el("button", { class: "icon-button small", onclick: () => queueSong(track, "end"), "aria-label": `Add ${track.title} to the queue`, title: "Add to queue" }, icon("add"))),
+      el("button", { class: "icon-button small", onclick: () => queueSong(track, "next"), "aria-label": t("Play {title} next", { title: track.title }), title: t("Play next") }, icon("play-next")),
+      el("button", { class: "icon-button small", onclick: () => queueSong(track, "end"), "aria-label": t("Add {title} to the queue", { title: track.title }), title: t("Add to queue") }, icon("add"))),
     heartButton(track),
     ratingsSetting() ? ratingStars(track) : null,
     streamsCell(track.id),
     el("span", { class: "track-time" }, clock(track.duration)),
     // (on phones, where the row has room only for its title: the rest is in this menu)
     el("button", {
-      class: "icon-button small track-more", "aria-label": `More for ${track.title}`, "aria-haspopup": "menu", "aria-expanded": "false",
+      class: "icon-button small track-more", "aria-label": t("More for {title}", { title: track.title }), "aria-haspopup": "menu", "aria-expanded": "false",
       onclick: (event) => openMenu(event.currentTarget, track, list),
     }, icon("more")));
 }
@@ -486,10 +499,10 @@ function renderArtists() {
         el("div", { class: "group-cover artist-mark", "aria-hidden": "true" }, mark),
         el("div", { class: "group-text" },
           el("h3", { class: "group-title" }, artist),
-          el("p", { class: "group-meta" }, [plural(new Set(songs.map((t) => t.album)).size, "album"), plural(songs.length, "song"), totalTime(total)].join(" · "))),
+          el("p", { class: "group-meta" }, [albumCount(new Set(songs.map((track) => track.album)).size), songCount(songs.length), totalTime(total)].join(" · "))),
         el("div", { class: "group-actions" },
-          el("button", { class: "icon-button small", onclick: () => playIds(ids, artist, false), "aria-label": `Play ${artist}`, title: "Play" }, icon("play")),
-          el("button", { class: "icon-button small", onclick: () => playIds(ids, artist, true), "aria-label": `Shuffle ${artist}`, title: "Shuffle" }, icon("shuffle")),
+          el("button", { class: "icon-button small", onclick: () => playIds(ids, artist, false), "aria-label": t("Play {title}", { title: artist }), title: t("Play") }, icon("play")),
+          el("button", { class: "icon-button small", onclick: () => playIds(ids, artist, true), "aria-label": t("Shuffle {title}", { title: artist }), title: t("Shuffle") }, icon("shuffle")),
           downloadButton(ids, artist))),
       el("ol", { class: "tracklist" }, ...songs.map((track, i) => renderTrack(track, i + 1, list, albums.get(track.album).title))));
   });
@@ -499,7 +512,7 @@ function renderArtists() {
 // cover, its name, Play, Shuffle, Download, and a "···" to rename or delete it), then its songs
 function renderPlaylists() {
   const head = el("div", { class: "playlists-head" },
-    el("button", { class: "btn", onclick: newPlaylist }, icon("add"), el("span", {}, "New playlist")));
+    el("button", { class: "btn", onclick: newPlaylist }, icon("add"), el("span", {}, t("New playlist"))));
   return [head, ...playlists().map((p) => {
     const list = { ids: p.tracks.filter((id) => tracks.has(id)), label: p.name, playlist: p.id };
     const songs = list.ids.map((id) => tracks.get(id));
@@ -510,41 +523,41 @@ function renderPlaylists() {
         el("div", { class: "group-cover", "aria-hidden": "true" }, first ? coverArt(first) : el("span", { class: "playlist-mark" }, icon("playlist"))),
         el("div", { class: "group-text" },
           el("h3", { class: "group-title", id: `playlist-title-${p.id}` }, p.name),
-          el("p", { class: "group-meta" }, ["Playlist", plural(songs.length, "song"), songs.length && totalTime(total)].filter(Boolean).join(" · "))),
+          el("p", { class: "group-meta" }, [t("Playlist"), songCount(songs.length), songs.length && totalTime(total)].filter(Boolean).join(" · "))),
         el("div", { class: "group-actions" },
-          el("button", { class: "icon-button small", disabled: !songs.length, onclick: () => playIds(list.ids, p.name, false), "aria-label": `Play ${p.name}`, title: "Play" }, icon("play")),
-          el("button", { class: "icon-button small", disabled: !songs.length, onclick: () => playIds(list.ids, p.name, true), "aria-label": `Shuffle ${p.name}`, title: "Shuffle" }, icon("shuffle")),
+          el("button", { class: "icon-button small", disabled: !songs.length, onclick: () => playIds(list.ids, p.name, false), "aria-label": t("Play {title}", { title: p.name }), title: t("Play") }, icon("play")),
+          el("button", { class: "icon-button small", disabled: !songs.length, onclick: () => playIds(list.ids, p.name, true), "aria-label": t("Shuffle {title}", { title: p.name }), title: t("Shuffle") }, icon("shuffle")),
           songs.length ? downloadButton(list.ids, p.name) : null,
           el("button", {
-            class: "icon-button small", "aria-label": `More for ${p.name}`, "aria-haspopup": "menu", "aria-expanded": "false",
-            title: "Rename or delete", onclick: (event) => openPlaylistMenu(event.currentTarget, p),
+            class: "icon-button small", "aria-label": t("More for {title}", { title: p.name }), "aria-haspopup": "menu", "aria-expanded": "false",
+            title: t("Rename or delete"), onclick: (event) => openPlaylistMenu(event.currentTarget, p),
           }, icon("more")))),
       songs.length
         ? el("ol", { class: "tracklist" }, ...songs.map((track, i) => renderTrack(track, i + 1, list, songNote(track))))
-        : el("p", { class: "playlist-empty" }, "No songs yet: add some from a song's ··· menu."));
+        : el("p", { class: "playlist-empty" }, t("No songs yet: add some from a song's ··· menu.")));
   })];
 }
 
 async function newPlaylist() {
-  const name = await ask({ title: "New playlist", value: "", ok: "Create" });
+  const name = await ask({ title: t("New playlist"), value: "", ok: t("Create") });
   if (!name) return;
   createPlaylist(name);
   if (sortSetting() !== "playlists") setSort("playlists");
-  toast(`Made “${name}”`);
+  toast(t("Made “{name}”", { name }));
 }
 
 // A song's menu, switched to the playlists to add it to
 function choosePlaylist(button, track) {
   const items = playlists().map((p) => [p.name, p.tracks.includes(track.id) ? "check" : "playlist", () => {
-    toast(addToPlaylist(p.id, track.id) ? `Added to “${p.name}”` : `Already in “${p.name}”`);
+    toast(addToPlaylist(p.id, track.id) ? t("Added to “{name}”", { name: p.name }) : t("Already in “{name}”", { name: p.name }));
   }]);
-  items.push(["New playlist…", "add", async () => {
-    const name = await ask({ title: "New playlist", value: "", ok: "Create" });
+  items.push([t("New playlist…"), "add", async () => {
+    const name = await ask({ title: t("New playlist"), value: "", ok: t("Create") });
     if (!name) return;
     createPlaylist(name, [track.id]);
-    toast(`Added to “${name}”`);
+    toast(t("Added to “{name}”", { name }));
   }]);
-  showMenu(button, "Add to playlist", items);
+  showMenu(button, t("Add to playlist"), items);
 }
 
 function openPlaylistMenu(button, p) {
@@ -553,12 +566,12 @@ function openPlaylistMenu(button, p) {
     return;
   }
   showMenu(button, p.name, [
-    ["Rename", "edit", async () => {
-      const name = await ask({ title: "Rename playlist", value: p.name, ok: "Rename" });
+    [t("Rename"), "edit", async () => {
+      const name = await ask({ title: t("Rename playlist"), value: p.name, ok: t("Rename") });
       if (name) renamePlaylist(p.id, name);
     }],
-    ["Delete playlist", "close", async () => {
-      if (await ask({ title: `Delete “${p.name}”?`, ok: "Delete", text: "Its songs stay on the site." })) deletePlaylist(p.id);
+    [t("Delete playlist"), "close", async () => {
+      if (await ask({ title: t("Delete “{name}”?", { name: p.name }), ok: t("Delete"), text: t("Its songs stay on the site.") })) deletePlaylist(p.id);
     }],
   ]);
 }
@@ -592,25 +605,28 @@ function downloadButton(ids, label) {
   if (!downloadsSupported) return null;
   return el("button", {
     class: "icon-button small download", dataset: { download: ids.join(" ") }, "aria-pressed": "false",
-    "aria-label": `Download ${label}`, title: "Download", onclick: () => toggleDownload(ids, label),
+    "aria-label": t("Download {label}", { label }), title: t("Download"), onclick: () => toggleDownload(ids, label),
   }, icon("download"));
 }
 
 async function toggleDownload(ids, label) {
   if (ids.length && ids.every(isDownloaded)) {
     await removeDownloads(ids);
-    toast(`Removed the download of ${label}`);
+    toast(t("Removed the download of {label}", { label }));
     return;
   }
   if (navigator.onLine === false) {
-    toast("You're offline: downloading needs a connection.");
+    toast(t("You're offline: downloading needs a connection."));
     return;
   }
   const missing = ids.filter((id) => !isDownloaded(id)).length;
-  if (missing > 1) toast(`Downloading ${plural(missing, "song")}…`);
+  if (missing > 1) toast(t("Downloading {songs}…", { songs: songCount(missing) }));
   const done = await download(ids);
-  toast(done === missing ? `Downloaded ${missing > 1 ? `${label}: ${plural(done, "song")}` : label}, to play offline`
-    : done ? `Downloaded ${done} of ${missing}: the rest once you're online again` : "Couldn't download: check your connection.");
+  if (done === missing) {
+    toast(missing > 1 ? t("Downloaded {label}: {songs}, to play offline", { label, songs: songCount(done) }) : t("Downloaded {label}, to play offline", { label }));
+  } else {
+    toast(done ? t("Downloaded {done} of {missing}: the rest once you're online again", { done: num(done), missing: num(missing) }) : t("Couldn't download: check your connection."));
+  }
 }
 
 function showDownloads() {
@@ -621,7 +637,7 @@ function showDownloads() {
     const busy = ids.some(isDownloading);
     button.setAttribute("aria-pressed", String(all));
     button.classList.toggle("busy", busy);
-    button.title = all ? "Downloaded: press to remove" : busy ? "Downloading…" : "Download";
+    button.title = all ? t("Downloaded: press to remove") : busy ? t("Downloading…") : t("Download");
     setIcon(button, all ? "downloaded" : "download");
   }
   showDownloadsSetting();
@@ -632,18 +648,19 @@ async function showDownloadsSetting() {
   if (!downloadsSupported || !tracks) return;
   const n = downloadedIds().filter((id) => tracks.has(id)).length;
   const busy = allIds.filter(isDownloading).length;
-  const text = (n ? `${n} of ${plural(allIds.length, "song")} downloaded` : "No songs downloaded yet") + (busy ? `, ${busy} on the way` : "");
-  $("#downloads-status").textContent = `${text}.`;
+  let text = n ? t("{n} of {songs} downloaded", { n: num(n), songs: songCount(allIds.length) }) : t("No songs downloaded yet");
+  if (busy) text = t("{text}, {n} on the way", { text, n: num(busy) });
+  $("#downloads-status").textContent = t("{text}.", { text });
   $("#download-all").disabled = n === allIds.length || busy > 0;
   $("#remove-downloads").disabled = n === 0;
   const used = n ? await storageUsed() : null;
-  if (used) $("#downloads-status").textContent = `${text}, about ${Math.max(1, Math.round(used / 1e6))} MB kept in this browser.`;
+  if (used) $("#downloads-status").textContent = t("{text}, about {mb} MB kept in this browser.", { text, mb: num(Math.max(1, Math.round(used / 1e6))) });
 }
 
 // Without a connection only the downloaded songs play: the others are dimmed, and left out of what plays
 const offline = () => downloadsSupported && navigator.onLine === false;
 const playable = (ids) => (offline() ? ids.filter(isDownloaded) : ids);
-const NOTHING_OFFLINE = "You're offline, and none of these are downloaded.";
+const NOTHING_OFFLINE = t("You're offline, and none of these are downloaded.");
 
 function showConnection() {
   document.body.classList.toggle("offline", offline());
@@ -664,8 +681,8 @@ function playIds(ids, label, shuffle) {
 function streamsCell(id) {
   const n = streamsOf(id);
   if (n === null) return el("span", { class: "track-streams" });
-  return el("span", { class: "track-streams", title: [streamCount(n), asOf()].filter(Boolean).join(", ") },
-    n.toLocaleString("en"), el("span", { class: "visually-hidden" }, n === 1 ? " stream" : " streams"));
+  return el("span", { class: "track-streams", title: asOf() ? t("{count}, {asOf}", { count: streamCount(n), asOf: asOf() }) : streamCount(n) },
+    num(n), el("span", { class: "visually-hidden" }, ` ${n === 1 ? t("stream") : t("streams")}`));
 }
 
 const albumList = (album) => ({ ids: album.tracks, label: album.title });
@@ -674,8 +691,8 @@ const albumList = (album) => ({ ids: album.tracks, label: album.title });
 // has always listed them (releases newest first, each in its own order); by popularity (site.js's
 // ranking first, the rest after, in that order); by release date, newest first; or by title.
 const SORT_LABELS = {
-  albums: "all songs", popular: "Most popular", newest: "the newest songs", title: "all songs, A–Z", artist: "all songs, by artist",
-  favorites: "your favorites", playlists: "your playlists",
+  albums: t("all songs"), popular: t("Most popular"), newest: t("the newest songs"), title: t("all songs, A–Z"), artist: t("all songs, by artist"),
+  favorites: t("your favorites"), playlists: t("your playlists"),
 };
 const byTitle = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
@@ -707,7 +724,7 @@ function renderSongs() {
     $("#albums").replaceChildren(...renderPlaylists());
   } else {
     const list = { ids: sortedSongs(order), label: SORT_LABELS[order] };
-    $("#albums").replaceChildren(el("section", { class: "group all-songs", "aria-label": "Songs" },
+    $("#albums").replaceChildren(el("section", { class: "group all-songs", "aria-label": t("Songs") },
       el("ol", { class: "tracklist" }, ...list.ids.map((id, i) => renderTrack(tracks.get(id), i + 1, list, songNote(tracks.get(id)))))));
   }
   $("#no-favorites").hidden = order !== "favorites" || allIds.some(isFavorite);
@@ -766,11 +783,11 @@ function setFocus(id) {
     }
     $("#focus-title").textContent = track.title;
     // its album and the day it came out; its length, tempo, key, and streams (when site.js has them)
-    $("#focus-album").textContent = [track.artist, album.title, showDate(track.release_date ?? album.release_date) ?? "Unreleased"].join(" · ");
+    $("#focus-album").textContent = [track.artist, album.title, showDate(track.release_date ?? album.release_date) ?? t("Unreleased")].join(" · ");
     const streams = streamsOf(id);
-    $("#focus-meta").textContent = [clock(track.duration), track.bpm && `${track.bpm} BPM`, track.key, streams !== null && streamCount(streams)]
+    $("#focus-meta").textContent = [clock(track.duration), track.bpm && `${track.bpm} BPM`, keyName(track.key), streams !== null && streamCount(streams)]
       .filter(Boolean).join(" · ");
-    $("#focus-meta").title = streams !== null && asOf() ? `${streamCount(streams)}, ${asOf()}` : "";
+    $("#focus-meta").title = streams !== null && asOf() ? t("{count}, {asOf}", { count: streamCount(streams), asOf: asOf() }) : "";
     $("#focus-favorite").dataset.heart = id;
     showHeart($("#focus-favorite"), id);
     showFocusRating();
@@ -787,11 +804,11 @@ function showFocusState() {
   const album = albums.get(track.album);
   const state = $("#focus-state");
   state.textContent = isCurrent
-    ? (playing ? "Now playing" : "Paused")
-    : album.tracks.length === 1 ? "Single" : `Track ${album.tracks.indexOf(track.id) + 1} of ${album.tracks.length}`;
+    ? (playing ? t("Now playing") : t("Paused"))
+    : album.tracks.length === 1 ? t("Single") : t("Track {n} of {total}", { n: num(album.tracks.indexOf(track.id) + 1), total: num(album.tracks.length) });
   state.classList.toggle("playing", playing);
   setIcon($("#focus-play"), playing ? "pause" : "play");
-  $("#focus-play span").textContent = playing ? "Pause" : "Play";
+  $("#focus-play span").textContent = playing ? t("Pause") : t("Play");
 }
 
 // --- favorites and star ratings, kept in this browser (js/marks.js) ---------------------------
@@ -799,7 +816,7 @@ function showFocusState() {
 // A song's heart: pressed (filled) once the song is a favorite.
 function heartButton(track) {
   const button = el("button", {
-    class: "icon-button small heart", dataset: { heart: track.id }, "aria-label": `Favorite ${track.title}`,
+    class: "icon-button small heart", dataset: { heart: track.id }, "aria-label": t("Favorite {title}", { title: track.title }),
     onclick: () => toggleFavorite(track.id),
   }, icon("heart"));
   showHeart(button, track.id);
@@ -809,14 +826,14 @@ function heartButton(track) {
 function showHeart(button, id) {
   const on = isFavorite(id);
   button.setAttribute("aria-pressed", String(on));
-  button.title = on ? "Remove from favorites" : "Add to favorites";
+  button.title = on ? t("Remove from favorites") : t("Add to favorites");
 }
 
 // A song's five stars, like iTunes: pressing one gives it that many, pressing its own rating again
 // takes it away. Only while the ratings are on (settings).
 function ratingStars(track) {
-  const group = el("span", { class: "rating", role: "group", dataset: { rating: track.id }, "aria-label": `Rating of ${track.title}` },
-    ...[1, 2, 3, 4, 5].map((n) => el("button", { class: "star", "aria-label": plural(n, "star"), onclick: () => rate(track.id, n) }, icon("star"))));
+  const group = el("span", { class: "rating", role: "group", dataset: { rating: track.id }, "aria-label": t("Rating of {title}", { title: track.title }) },
+    ...[1, 2, 3, 4, 5].map((n) => el("button", { class: "star", "aria-label": count(n, "{n} star", "{n} stars"), onclick: () => rate(track.id, n) }, icon("star"))));
   showRating(group, track.id);
   return group;
 }
@@ -826,7 +843,7 @@ function showRating(group, id) {
   group.querySelectorAll(".star").forEach((star, i) => {
     star.classList.toggle("on", i < stars);
     star.setAttribute("aria-pressed", String(i + 1 === stars));
-    star.title = i + 1 === stars ? "Remove the rating" : `Rate ${plural(i + 1, "star")}`;
+    star.title = i + 1 === stars ? t("Remove the rating") : count(i + 1, "Rate {n} star", "Rate {n} stars");
   });
 }
 
@@ -860,18 +877,18 @@ function openMenu(button, track, list = null) {
   }
   const favorite = isFavorite(track.id);
   const items = [
-    ["Play next", "play-next", () => queueSong(track, "next")],
-    ["Add to queue", "add", () => queueSong(track, "end")],
-    ["Add to playlist", "playlist", () => choosePlaylist(button, track)],
-    list?.playlist && ["Remove from this playlist", "close", () => removeFromPlaylist(list.playlist, track.id)],
-    [favorite ? "Remove from favorites" : "Add to favorites", "heart", () => toggleFavorite(track.id), !favorite],
+    [t("Play next"), "play-next", () => queueSong(track, "next")],
+    [t("Add to queue"), "add", () => queueSong(track, "end")],
+    [t("Add to playlist"), "playlist", () => choosePlaylist(button, track)],
+    list?.playlist && [t("Remove from this playlist"), "close", () => removeFromPlaylist(list.playlist, track.id)],
+    [favorite ? t("Remove from favorites") : t("Add to favorites"), "heart", () => toggleFavorite(track.id), !favorite],
     downloadsSupported && (isDownloaded(track.id)
-      ? ["Remove download", "downloaded", () => removeDownloads([track.id])]
-      : ["Download", "download", () => toggleDownload([track.id], `“${track.title}”`)]),
-    ["Song details", "details", () => openDetails(track.id)],
-    ["Copy link", "link", () => copyLink(track)],
+      ? [t("Remove download"), "downloaded", () => removeDownloads([track.id])]
+      : [t("Download"), "download", () => toggleDownload([track.id], t("“{title}”", { title: track.title }))]),
+    [t("Song details"), "details", () => openDetails(track.id)],
+    [t("Copy link"), "link", () => copyLink(track)],
     ...STORES.filter(([key]) => track[key])
-      .map(([key, name]) => [`Listen on ${name}`, "external", () => window.open(track[key], "_blank", "noopener")]),
+      .map(([key, name]) => [t("Listen on {name}", { name }), "external", () => window.open(track[key], "_blank", "noopener")]),
   ];
   // (with Star ratings on: the row has no room for them)
   showMenu(button, track.title, items, ratingsSetting() ? [el("div", { class: "menu-rating" }, ratingStars(track))] : []);
@@ -911,7 +928,7 @@ async function copyLink(track) {
   const url = `${location.origin}${location.pathname}#song-${track.id}`;
   try {
     await navigator.clipboard.writeText(url);
-    toast("Link copied");
+    toast(t("Link copied"));
   } catch {
     toast(url);
   }
@@ -929,7 +946,7 @@ function playEverything(shuffle) {
   const order = sortSetting();
   const ids = playable(sortedSongs(order));
   if (ids.length === 0) {
-    toast(offline() ? NOTHING_OFFLINE : order === "playlists" ? "No songs in your playlists yet." : "No favorites yet: press the heart beside a song.");
+    toast(offline() ? NOTHING_OFFLINE : order === "playlists" ? t("No songs in your playlists yet.") : t("No favorites yet: press the heart beside a song."));
     return;
   }
   player.playList(ids, { label: SORT_LABELS[order] });
@@ -942,7 +959,7 @@ function playFrom(list, track) {
     return;
   }
   if (offline() && !isDownloaded(track.id)) {
-    toast(`“${track.title}” isn't downloaded: it plays once you're online.`);
+    toast(t("“{title}” isn't downloaded: it plays once you're online.", { title: track.title }));
     return;
   }
   player.playList(playable(list.ids), { start: track.id, label: list.label });
@@ -950,12 +967,12 @@ function playFrom(list, track) {
 
 function queueSong(track, where) {
   if (offline() && !isDownloaded(track.id)) {
-    toast(`“${track.title}” isn't downloaded: it plays once you're online.`);
+    toast(t("“{title}” isn't downloaded: it plays once you're online.", { title: track.title }));
     return;
   }
   if (where === "next") player.playNext(track.id);
   else player.addToQueue(track.id);
-  toast(where === "next" ? `“${track.title}” will play next` : `Added “${track.title}” to the queue`);
+  toast(where === "next" ? t("“{title}” will play next", { title: track.title }) : t("Added “{title}” to the queue", { title: track.title }));
 }
 
 function togglePlay() {
@@ -972,7 +989,7 @@ function showTrack() {
   const album = track && albums.get(track.album);
   markCurrent();
   document.body.classList.toggle("has-track", Boolean(track));
-  $("#now-title").textContent = track ? track.title : "Pick a song to start";
+  $("#now-title").textContent = track ? track.title : t("Pick a song to start");
   $("#now-album").textContent = album ? `${track.artist} · ${album.title}` : "";
   const nowCover = $("#now-cover");
   if (nowCover.dataset.album !== (album?.id ?? "")) {
@@ -982,7 +999,7 @@ function showTrack() {
   for (const id of ["#now-cover", "#now-favorite", "#copy-link", "#seek", "#fullscreen", "#details-toggle"]) $(id).disabled = !track;
   const heart = $("#now-favorite");
   heart.dataset.heart = track?.id ?? "";
-  heart.setAttribute("aria-label", track ? `Favorite ${track.title}` : "Favorite");
+  heart.setAttribute("aria-label", track ? t("Favorite {title}", { title: track.title }) : t("Favorite"));
   showHeart(heart, track?.id);
   // the song in focus on the music page catches up when the full-screen view closes
   if (!visualOpen()) setFocus(defaultFocus());
@@ -1027,7 +1044,7 @@ function showState(detail) {
     setIcon($("#play"), name);
     replay(svg, "pop");
   }
-  $("#play").setAttribute("aria-label", playing ? "Pause" : "Play");
+  $("#play").setAttribute("aria-label", playing ? t("Pause") : t("Play"));
   document.title = playing && track ? `${track.title} · ${track.artist}` : SITE.artist;
   showFocusState();
   // In full screen, pressing play or pause shows the controls (they stay while paused). Not one song
@@ -1063,13 +1080,12 @@ function showTime() {
 function showModes() {
   const shuffle = $("#shuffle");
   shuffle.setAttribute("aria-pressed", String(player.shuffle));
-  shuffle.title = `Shuffle: ${player.shuffle ? "on" : "off"} (S)`;
+  shuffle.title = player.shuffle ? t("Shuffle: on (S)") : t("Shuffle: off (S)");
   const repeat = $("#repeat");
   repeat.dataset.mode = player.repeat;
   repeat.setAttribute("aria-pressed", String(player.repeat !== "off"));
-  const label = { off: "off", all: "all songs", one: "this song" }[player.repeat];
-  repeat.setAttribute("aria-label", `Repeat: ${label}`);
-  repeat.title = `Repeat: ${label} (R)`;
+  repeat.setAttribute("aria-label", { off: t("Repeat: off"), all: t("Repeat: all songs"), one: t("Repeat: this song") }[player.repeat]);
+  repeat.title = { off: t("Repeat: off (R)"), all: t("Repeat: all songs (R)"), one: t("Repeat: this song (R)") }[player.repeat];
 }
 
 function showVolume() {
@@ -1078,7 +1094,7 @@ function showVolume() {
   slider.value = muted ? 0 : volume;
   slider.style.setProperty("--fill", `${(muted ? 0 : volume) * 100}%`);
   setIcon($("#mute"), muted || volume === 0 ? "mute" : "volume");
-  $("#mute").setAttribute("aria-label", muted ? "Unmute" : "Mute");
+  $("#mute").setAttribute("aria-label", muted ? t("Unmute") : t("Mute"));
 }
 
 // --- the side panels: the queue, and a song's details ------------------------------------------
@@ -1118,12 +1134,12 @@ function queueRow(item, isCurrent) {
     el("button", {
       class: "queue-main",
       onclick: isCurrent ? () => player.toggle() : () => player.jump(item.key),
-      title: isCurrent ? "Play or pause" : `Play ${track.title} now`,
+      title: isCurrent ? t("Play or pause") : t("Play {title} now", { title: track.title }),
     },
       el("span", { class: "queue-cover", "aria-hidden": "true" }, coverArt(album)),
       el("span", { class: "queue-text" }, el("span", { class: "queue-title" }, track.title), el("span", { class: "queue-album" }, album.title))),
     el("span", { class: "track-time" }, clock(track.duration)),
-    isCurrent ? null : el("button", { class: "icon-button small", onclick: () => player.remove(item.key), "aria-label": `Remove ${track.title} from the queue`, title: "Remove" }, icon("close")));
+    isCurrent ? null : el("button", { class: "icon-button small", onclick: () => player.remove(item.key), "aria-label": t("Remove {title} from the queue", { title: track.title }), title: t("Remove") }, icon("close")));
 }
 
 function showQueue() {
@@ -1136,8 +1152,8 @@ function showQueue() {
   $("#queue-context").replaceChildren(...rest.map((item) => queueRow(item, false)));
   $("#queue-added-section").hidden = added.length === 0;
   $("#queue-context-section").hidden = rest.length === 0;
-  const from = player.contextLabel ? `Next from ${player.contextLabel}` : "Next up";
-  $("#queue-context-title").textContent = player.shuffle ? `${from} (shuffled)` : from;
+  const from = player.contextLabel ? t("Next from {label}", { label: player.contextLabel }) : t("Next up");
+  $("#queue-context-title").textContent = player.shuffle ? t("{label} (shuffled)", { label: from }) : from;
   $("#queue-empty").hidden = upcoming.length > 0;
 }
 
@@ -1163,11 +1179,11 @@ function showDetails() {
   const draw = (data, note, message) => renderDetails(body, {
     track, album, data, note, message, cover: coverArt(album), onPlay: (seconds) => playMoment(track, seconds),
   });
-  draw(null, null, track.analysis ? "Loading the analysis…" : "This song hasn't been analyzed yet.");
+  draw(null, null, track.analysis ? t("Loading the analysis…") : t("This song hasn't been analyzed yet."));
   Promise.all([loadAnalysis(track), loadNotes()]).then(([data, notes]) => {
     if (detailsId !== track.id || !track.analysis) return;
     if (!data) {
-      draw(null, null, "The analysis couldn't be loaded. Please try again in a moment.");
+      draw(null, null, t("The analysis couldn't be loaded. Please try again in a moment."));
       return;
     }
     draw(data, notes.get(track.id));
@@ -1382,7 +1398,7 @@ function setVisualOpen(open) {
   visual.setAttribute("aria-hidden", String(!open));
   document.body.classList.toggle("visual-open", open);
   $("#fullscreen").setAttribute("aria-pressed", String(open));
-  $("#fullscreen").setAttribute("aria-label", open ? "Exit full screen" : "Full screen");
+  $("#fullscreen").setAttribute("aria-label", open ? t("Exit full screen") : t("Full screen"));
   setIcon($("#fullscreen"), open ? "collapse" : "expand");
   showTheme();
   clearTimeout(coverTimer);
@@ -1438,11 +1454,11 @@ function wireControls() {
   $("#prev").addEventListener("click", () => player.previous());
   $("#shuffle").addEventListener("click", () => {
     player.setShuffle(!player.shuffle);
-    toast(player.shuffle ? "Shuffle on" : "Shuffle off");
+    toast(player.shuffle ? t("Shuffle on") : t("Shuffle off"));
   });
   $("#repeat").addEventListener("click", () => {
     player.cycleRepeat();
-    toast({ off: "Repeat off", all: "Repeating all songs", one: "Repeating this song" }[player.repeat]);
+    toast({ off: t("Repeat off"), all: t("Repeating all songs"), one: t("Repeating this song") }[player.repeat]);
   });
 
   const seek = $("#seek");
@@ -1595,10 +1611,10 @@ function wireControls() {
     if (detail === "track") showTrack();
     if (detail === "volume") showVolume();
     if (detail === "error" && player.failed && offline() && !isDownloaded(player.failed.id)) {
-      toast(`Skipped “${player.failed.title}”: it isn't downloaded.`);
+      toast(t("Skipped “{title}”: it isn't downloaded.", { title: player.failed.title }));
       player.next();
     } else if (detail === "error" && player.failed) {
-      toast(`Couldn't load “${player.failed.title}”. Check your connection and try again.`);
+      toast(t("Couldn't load “{title}”. Check your connection and try again.", { title: player.failed.title }));
     }
     if (["track", "time"].includes(detail)) showTime();
     if (["track", "state", "error"].includes(detail)) showState(detail);
@@ -1647,9 +1663,14 @@ function onKey(event) {
 }
 
 async function main() {
+  // the page's own words in the listener's language, before anything is filled in, then the page
+  // (index.html hides it until then)
+  translatePage();
+  delete document.documentElement.dataset.translating;
   showTheme();
   fillSiteText(null);
   wireSettings();
+  wireFeedback();
   prefersLight.addEventListener("change", showTheme);
   showView(true);
   window.addEventListener("hashchange", () => showView(false));
@@ -1665,7 +1686,7 @@ async function main() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     catalog = await response.json();
   } catch (error) {
-    $("#library-status").textContent = "The music couldn't be loaded. Please try again in a moment.";
+    $("#library-status").textContent = t("The music couldn't be loaded. Please try again in a moment.");
     console.error("Couldn't load library/catalog.json (run python scripts/build_catalog.py):", error);
     return;
   }
@@ -1713,7 +1734,7 @@ async function main() {
     addEventListener(name, () => {
       showConnection();
       if (name === "offline" && downloadsSupported) {
-        toast(downloadedIds().length ? "You're offline: your downloaded songs still play." : "You're offline: songs you download play without a connection.");
+        toast(downloadedIds().length ? t("You're offline: your downloaded songs still play.") : t("You're offline: songs you download play without a connection."));
       }
     });
   }

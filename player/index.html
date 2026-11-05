@@ -41,6 +41,27 @@
       const graphics = localStorage.getItem("synopsist.graphics");
       if (graphics === "low" || graphics === "off") document.documentElement.dataset.graphics = graphics;
     } catch {}
+    // The language (js/i18n.js): the one chosen in Settings, or else the first of the device's that
+    // the site has (any Chinese gets Simplified Chinese), or English. Its words (i18n/strings.json) are
+    // asked for right away, and the page stays hidden until they're in, never more than 3 s.
+    (() => {
+      const root = document.documentElement;
+      const known = ["en", "zh", "ja", "ko"];
+      let language = null;
+      try {
+        language = localStorage.getItem("synopsist.language");
+      } catch {}
+      if (!known.includes(language)) {
+        const asked = [...(navigator.languages || []), navigator.language || ""].map((tag) => String(tag).toLowerCase().split("-")[0]);
+        language = asked.find((code) => known.includes(code)) || "en";
+      }
+      root.dataset.language = language;
+      root.lang = { en: "en", zh: "zh-Hans", ja: "ja", ko: "ko" }[language];
+      if (language === "en") return;
+      root.dataset.translating = "";
+      setTimeout(() => delete root.dataset.translating, 3000);
+      window.synopsistStrings = fetch("i18n/strings.json").then((response) => (response.ok ? response.json() : null)).catch(() => null);
+    })();
     // iPhones and iPads (an iPad says it's a Mac, but one with a touch screen), whose status bar
     // takes its color from the page: style.css and app.js look after it
     if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
@@ -49,9 +70,11 @@
   </script>
   <script type="module" src="js/app.js"></script>
 </head>
-<!-- Three pages in one document, so the music keeps playing between them: the landing page at "/",
-     the music page at "/#music" (or any other link into it, like "/#song-space-rain"), and the
-     settings at "/#settings". -->
+<!-- The pages in one document, so the music keeps playing between them: the landing page at "/",
+     the music page at "/#music" (or any other link into it, like "/#song-space-rain"), the settings
+     at "/#settings", the app's at "/#app", and feedback at "/#feedback". Its words are English;
+     js/i18n.js puts them in the listener's language (i18n/strings.json), the blocks marked data-i18n
+     whole, with their markup. -->
 <body data-view="home">
   <!-- what an iPhone looks at, at the top of the screen, and finds nothing to color its status bar
        with, so it blurs whatever's behind it (style.css, iPhones and iPads); never seen -->
@@ -133,7 +156,7 @@
         <ul class="release-list" id="release-list"></ul>
       </section>
     </div>
-    <footer class="landing-footer">© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span><span class="app-link"> · <a href="#app">Get the app</a></span></footer>
+    <footer class="landing-footer">© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span><span class="app-link"> · <a href="#app">Get the app</a></span><span class="feedback-link" data-needs="feedbackUrl"> · <a href="#feedback">Feedback</a></span></footer>
   </section>
 
   <!-- ===== Music page: a song-select screen ================================================= -->
@@ -218,20 +241,24 @@
 
       <section class="panel privacy" id="privacy" aria-labelledby="privacy-title">
         <h2 class="section-title" id="privacy-title">Privacy</h2>
-        <p>
+        <p data-i18n="@privacy-records">
           <strong>What this site records.</strong> While you listen, the player notes when you play, pause, skip, or
           finish a song, or jump to another moment in it. Each note holds the song, the moment, and the time. The notes
           are kept in a database for reference.
         </p>
-        <p>
+        <p data-i18n="@privacy-why">
           <strong>Why.</strong> It shows the artist which parts of each song listeners replay, skip, or stop at, so
           they can better understand their audience. It also lets the site recommend songs from the moments you
           replay, rather than from genre.
         </p>
-        <p>
+        <p data-i18n="@privacy-not">
           <strong>What it doesn't record.</strong> No name, email, account, or location, and no advertising or
           third-party trackers. Your listening is linked only to a random ID created in this browser, never to your IP
           address.
+        </p>
+        <p data-i18n="@privacy-feedback" data-needs="feedbackUrl">
+          <strong>Feedback.</strong> What you send from the feedback page (a rating, your words, or both) is emailed to
+          the artist with the site's language, and nothing else: no name, email, or ID, and no copy is kept.
         </p>
         <label class="toggle">
           <input type="checkbox" id="share-listening">
@@ -247,6 +274,22 @@
       <a class="back-link" id="settings-back" href="#music"><svg><use href="#i-arrow"/></svg><span>Back</span></a>
       <h1 class="section-title" id="settings-title">Settings</h1>
       <p class="settings-intro">Saved in this browser only.</p>
+
+      <!-- the language first, its name in English too wherever it's shown in another (i18n/strings.json),
+           for anyone who lands in one they don't read -->
+      <section class="settings-group" aria-labelledby="language-title">
+        <h2 id="language-title">Language</h2>
+        <div class="dropdown" id="language-choice">
+          <button class="dropdown-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="language-list" aria-labelledby="language-title language-value"><span class="dropdown-value" id="language-value"></span><svg class="dropdown-arrow"><use href="#i-chevron"/></svg></button>
+          <!-- each in its own words (js/i18n.js); choosing one opens the page again in it -->
+          <ul class="dropdown-list" id="language-list" role="listbox" aria-labelledby="language-title" tabindex="-1" hidden>
+            <li role="option" data-value="en" lang="en"><span class="option-name">English</span></li>
+            <li role="option" data-value="zh" lang="zh-Hans"><span class="option-name">简体中文</span></li>
+            <li role="option" data-value="ja" lang="ja"><span class="option-name">日本語</span></li>
+            <li role="option" data-value="ko" lang="ko"><span class="option-name">한국어</span></li>
+          </ul>
+        </div>
+      </section>
 
       <!-- each setting: its name, then small buttons (the chosen one pressed), a few with a short caption -->
       <section class="settings-group" aria-labelledby="appearance-title">
@@ -366,7 +409,7 @@
           <button class="btn" id="download-all" type="button"><svg><use href="#i-download"/></svg><span>Download every song</span></button>
           <button class="btn" id="remove-downloads" type="button"><svg><use href="#i-close"/></svg><span>Remove all downloads</span></button>
         </div>
-        <p class="settings-note">Downloaded songs play without a connection, and what you listen to meanwhile is sent once you’re
+        <p class="settings-note" data-i18n="@downloads-note">Downloaded songs play without a connection, and what you listen to meanwhile is sent once you’re
           back online. Download one song from its ··· menu, or a whole album or playlist from the button by its name. On an
           iPhone they’re kept best in the app (<a href="#app">Get the app</a>): Safari may clear them after a few weeks unused.</p>
       </section>
@@ -396,6 +439,11 @@
           <div><dt>Close, or go back</dt><dd><kbd>Esc</kbd></dd></div>
         </dl>
       </section>
+
+      <section class="settings-group" aria-labelledby="feedback-group-title" data-needs="feedbackUrl">
+        <h2 id="feedback-group-title">Feedback</h2>
+        <p class="settings-note">Tell the artist what you think of Synopsist, anonymously. <a href="#feedback">Send feedback</a></p>
+      </section>
     </section>
 
     <!-- ===== The app ("#app"): adding the site to the Home Screen, the link to send iPhone listeners;
@@ -409,33 +457,60 @@
 
       <section class="settings-group" aria-labelledby="app-iphone-title">
         <h2 id="app-iphone-title">On iPhone or iPad</h2>
-        <p class="app-in-app" id="app-in-app" hidden>First open this page in Safari: the browsers inside apps like
+        <p class="app-in-app" id="app-in-app" data-i18n="@app-in-app" hidden>First open this page in Safari: the browsers inside apps like
           Instagram and TikTok can't add to the Home Screen. Tap <svg class="glyph" aria-hidden="true"><use href="#i-more"/></svg>
           and choose to open it in your browser.</p>
         <ol class="app-steps">
-          <li>In Safari, open <strong>oslohaggadone.com/Synopsist</strong>.</li>
-          <li>Tap <svg class="glyph" aria-label="the three dots"><use href="#i-more"/></svg> next to the address, then
+          <li data-i18n="@app-step-1">In Safari, open <strong>oslohaggadone.com/Synopsist</strong>.</li>
+          <li data-i18n="@app-step-2">Tap <svg class="glyph" aria-label="the three dots"><use href="#i-more"/></svg> next to the address, then
             <strong>Share</strong> <svg class="glyph" aria-hidden="true"><use href="#i-share"/></svg>. On an iPhone
             before iOS 26, tap Share at the bottom of the screen.</li>
-          <li>Scroll down and tap <strong>Add to Home Screen</strong> <svg class="glyph" aria-hidden="true"><use href="#i-home-add"/></svg>.</li>
-          <li>Leave <strong>Open as Web App</strong> on, and tap <strong>Add</strong>.</li>
-          <li>Open <strong>Synopsist</strong> from your Home Screen.</li>
+          <li data-i18n="@app-step-3">Scroll down and tap <strong>Add to Home Screen</strong> <svg class="glyph" aria-hidden="true"><use href="#i-home-add"/></svg>.</li>
+          <li data-i18n="@app-step-4">Leave <strong>Open as Web App</strong> on, and tap <strong>Add</strong>.</li>
+          <li data-i18n="@app-step-5">Open <strong>Synopsist</strong> from your Home Screen.</li>
         </ol>
       </section>
 
       <section class="settings-group" aria-labelledby="app-other-title">
         <h2 id="app-other-title">On Android or a computer</h2>
         <button class="btn btn-primary app-install" id="app-install" type="button" hidden><span>Install the app</span><svg><use href="#i-arrow"/></svg></button>
-        <p class="app-other">In Chrome or Edge, open the browser's menu and choose <strong>Install</strong> (or
+        <p class="app-other" data-i18n="@app-other">In Chrome or Edge, open the browser's menu and choose <strong>Install</strong> (or
           <strong>Add to Home screen</strong>).</p>
         <p class="settings-note">The app shares anonymous listening data the way the website does, and Settings can turn
           it off. <a href="#privacy">Read the privacy note</a></p>
       </section>
     </section>
 
+    <!-- ===== Feedback ("#feedback"): how satisfied the listener is, out of five stars, and their own
+         words, sent anonymously to the artist (js/feedback.js; SITE.feedbackUrl) =================== -->
+    <section class="feedback-page" id="feedback" aria-labelledby="feedback-title">
+      <a class="back-link" id="feedback-back" href="#"><svg><use href="#i-arrow"/></svg><span>Back</span></a>
+      <h1 class="section-title" id="feedback-title">Feedback</h1>
+      <p class="settings-intro">Anonymous: no name, email, or account needed.</p>
+      <form class="feedback-form" id="feedback-form" novalidate>
+        <fieldset class="feedback-question">
+          <legend class="feedback-label">How satisfied are you with Synopsist?</legend>
+          <!-- five stars (js/feedback.js), each a radio button -->
+          <div class="rating feedback-stars" id="feedback-stars"></div>
+        </fieldset>
+        <div class="feedback-question">
+          <label class="feedback-label" for="feedback-message">Provide feedback here</label>
+          <textarea class="ask-input feedback-message" id="feedback-message" name="message" rows="6" maxlength="2000"></textarea>
+        </div>
+        <!-- a spam bot fills this in; a person never sees it -->
+        <input class="honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="feedback-send">
+          <button class="btn btn-primary" type="submit" id="feedback-send"><span>Send</span><svg><use href="#i-arrow"/></svg></button>
+          <p class="feedback-status" id="feedback-status" role="status"></p>
+        </div>
+      </form>
+      <p class="settings-note">Only your rating, your words, and the site's language are sent, by email to the artist. Nothing
+        is kept. <a href="#privacy">Read the privacy note</a></p>
+    </section>
+
     <footer class="site-footer">
       <div class="also-on"><span>Also on</span><ul class="artist-links"></ul></div>
-      <p>© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span>. All songs free to stream.<span class="app-link"> <a href="#app">Get the app</a></span></p>
+      <p>© <span class="year"></span> <span data-site="artist">Oslo Haggadone</span>. All songs free to stream.<span class="app-link"> <a href="#app">Get the app</a><span data-needs="feedbackUrl"> ·</span></span><span class="feedback-link" data-needs="feedbackUrl"> <a href="#feedback">Feedback</a></span></p>
       <p class="shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> seek · <kbd>N</kbd>/<kbd>P</kbd> next/previous · <kbd>S</kbd> shuffle · <kbd>R</kbd> repeat · <kbd>Q</kbd> queue · <kbd>D</kbd> song details · <kbd>F</kbd> full screen</p>
     </footer>
   </div>
@@ -477,7 +552,7 @@
         <div class="queue-section-head"><h3 id="queue-context-title">Next up</h3><button class="text-button" id="clear-context">Clear</button></div>
         <ol class="queue-list" id="queue-context"></ol>
       </div>
-      <p class="status" id="queue-empty">Nothing else is queued. Use <svg class="inline-icon"><use href="#i-add"/></svg> on a song to add it.</p>
+      <p class="status" id="queue-empty" data-i18n="@queue-empty">Nothing else is queued. Use <svg class="inline-icon"><use href="#i-add"/></svg> on a song to add it.</p>
     </div>
   </aside>
 

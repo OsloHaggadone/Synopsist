@@ -8,6 +8,13 @@ export const SITE = {
   // sends here, and the API turns it away (it takes only the published site's pages).
   eventsUrl: "https://synopsist-events.oslohaggadone.workers.dev/events",
 
+  // Where the feedback page (#feedback) sends listeners' ratings and words: the portfolio's contact
+  // form on Cloudflare (its contact-worker/), which emails them to you. Empty, the page and its links
+  // are hidden.
+  feedbackUrl: "https://contact.oslohaggadone.workers.dev/feedback",
+
+  // The words below are shown in the listener's language where i18n/strings.json has them (the same
+  // English, word for word, with its translations); a new line shows in English until it's added there.
   artist: "Oslo Haggadone",
   tagline: "Independent artist. Every song, free to stream.",
 

@@ -5,6 +5,8 @@ Run:  python scripts/listening_log.py              the latest 40 events
       python scripts/listening_log.py --replays    every jump back that counts as a replay (events.py)
       python scripts/listening_log.py --db data/live.db   the live site's, as scripts/pull_events.py
                                                    downloaded it
+      python scripts/listening_log.py --db data/simulated.db   the simulated listening, for testing
+                                                   (scripts/simulate_events.py)
 
 Listeners show as the first characters of their random ID.
 """
@@ -36,7 +38,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Show the listening events the website has stored.")
     parser.add_argument("--last", type=int, default=40, help="how many of the latest events to show")
     parser.add_argument("--replays", action="store_true", help="show every jump back within a song instead")
-    parser.add_argument("--db", type=Path, default=DB_PATH, help="another database, like data/live.db")
+    parser.add_argument("--db", type=Path, default=DB_PATH, help="another database, like data/live.db or data/simulated.db")
     args = parser.parse_args()
     if not args.db.exists():
         print("No database yet: run python scripts/build_catalog.py, then python app/server.py and listen a little."
